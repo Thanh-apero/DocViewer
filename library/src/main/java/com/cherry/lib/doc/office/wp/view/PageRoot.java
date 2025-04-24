@@ -214,19 +214,23 @@ public class PageRoot extends AbstractView implements IRoot
      */
     public synchronized void backLayout()
     {
-        wpLayouter.backLayout();
-        word.postInvalidate();
-        // auto test code
-        if (wpLayouter.isLayoutFinish())
-        {
-            word.getControl().actionEvent(EventConstant.SYS_AUTO_TEST_FINISH_ID, true);
-            word.getControl().actionEvent(EventConstant.WP_LAYOUT_COMPLETED, true);
+        try {
+            wpLayouter.backLayout();
+            word.postInvalidate();
+            // auto test code
+            if (wpLayouter.isLayoutFinish()) {
+                word.getControl().actionEvent(EventConstant.SYS_AUTO_TEST_FINISH_ID, true);
+                word.getControl().actionEvent(EventConstant.WP_LAYOUT_COMPLETED, true);
+            }
+            word.getControl().actionEvent(EventConstant.SYS_UPDATE_TOOLSBAR_BUTTON_STATUS, null);
+            //
+            LayoutKit.instance().layoutAllPage(this, word.getZoom());
+            //
+            word.layoutPrintMode();
+        } catch (Exception e) {
+            // Log error but don't let it crash the app
+            word.getControl().getSysKit().getErrorKit().writerLog(e);
         }
-        word.getControl().actionEvent(EventConstant.SYS_UPDATE_TOOLSBAR_BUTTON_STATUS, null);
-        //
-        LayoutKit.instance().layoutAllPage(this, word.getZoom());
-        //
-        word.layoutPrintMode();
     }
 
     /**
@@ -294,6 +298,14 @@ public class PageRoot extends AbstractView implements IRoot
         return pages.get(pageIndex);
     }
     
+    /**
+     * Get the WPLayouter instance
+     * @return WPLayouter instance
+     */
+    public WPLayouter getWPLayouter() {
+        return this.wpLayouter;
+    }
+
     /**
      * update total pages after layout completed
      */

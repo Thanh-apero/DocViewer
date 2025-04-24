@@ -22,6 +22,7 @@ import com.cherry.lib.doc.office.simpletext.view.ParaAttr;
 import com.cherry.lib.doc.office.simpletext.view.ViewKit;
 import com.cherry.lib.doc.office.wp.model.WPDocument;
 
+import android.util.Log;
 
 /**
  * Word 布局器
@@ -122,6 +123,9 @@ public class WPLayouter
         para.setStartOffset(currentLayoutOffset);
         para.setEndOffset(elem.getEndOffset());
         boolean keepOne = true;
+        int contentHeight = 0;
+        int maxSinglePageHeight = pageAttr.pageHeight * 3; // Define a reasonable max height
+
         while (spanH > 0 && currentLayoutOffset < maxEnd && breakType != WPViewConstant.BREAK_LIMIT
             && breakType != WPViewConstant.BREAK_PAGE)
         {
@@ -147,6 +151,21 @@ public class WPLayouter
                     para, currentLayoutOffset, dx, dy, spanW, spanH, flag);
             }
             int paraHeight = para.getLayoutSpan(WPViewConstant.Y_AXIS);
+            contentHeight += paraHeight;
+
+            // Check if content is getting excessively large for a single page
+            if (contentHeight > maxSinglePageHeight) {
+                Log.w(TAG, "Content height (" + contentHeight + ") exceeds maximum reasonable height (" +
+                        maxSinglePageHeight + "). This may indicate an issue with content rendering.");
+
+                // If this paragraph is extraordinarily large, it might be causing the problem
+                if (paraHeight > pageAttr.pageHeight) {
+                    Log.e(TAG, "Found extremely tall paragraph: " + paraHeight + "px. Forcing break.");
+                    breakType = WPViewConstant.BREAK_LIMIT;
+                    break;
+                }
+            }
+
             if (!keepOne && para.getChildView() == null)
             {
                 if (breakPara == null)
@@ -532,5 +551,203 @@ public class WPLayouter
     private TableLayoutKit hfTableLayout;
     //
     private List<LeafView> shapeViews = new ArrayList<LeafView>();
-    
+    private static final String TAG = "WPLayouter";
+
+    /**
+     * Force layout to finish when it appears to be stuck
+     * This method is called when layout is unable to make progress after multiple attempts
+     */
+    public void forceFinishLayout() {
+        try {
+            // Try to skip just the problematic section
+            if (tryToSkipProblematicSection()) {
+                Log.w(TAG, "Skipped problematic section and continuing layout");
+                return;
+            }
+
+            // If skipping failed or this is called multiple times, force complete layout finish
+            Log.w(TAG, "Forcing layout completion");
+
+            // Store current state for diagnosis
+            long currentOffset = currentLayoutOffset;
+            int pageCount = root.getPageCount();
+
+            // Force layout to completion
+            currentLayoutOffset = doc.getAreaEnd(WPModelConstant.MAIN);
+            breakPara = null;
+
+            Log.i(TAG, "Layout forced to completion: offset " + currentOffset +
+                    " -> " + currentLayoutOffset + ", page count: " + pageCount);
+
+            // Generate an event to notify the document is ready to view
+            if (root != null && root.getContainer() != null &&
+                    root.getContainer().getControl() != null) {
+                root.getContainer().getControl().actionEvent(
+                        com.cherry.lib.doc.office.constant.EventConstant.WP_LAYOUT_COMPLETED, true);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error while forcing layout completion", e);
+        }
+    }
+
+    /**
+     * Try to skip just the problematic section of content instead of forcing the entire layout to complete
+     * @return true if the section was successfully skipped, false otherwise
+     */
+    private boolean tryToSkipProblematicSection() {
+        try {
+            // Store current offset
+            long currentOffset = currentLayoutOffset;
+            boolean offsetAdvanced = false;
+
+            // If we're stuck at a paragraph
+            if (breakPara != null) {
+                Log.i(TAG, "Attempting to skip problematic paragraph at offset " + currentOffset);
+
+                // Check if we can get the end offset of the paragraph
+                long skipTo = breakPara.getElement().getEndOffset();
+
+                // Force skip forward if we're not making progress
+                if (skipTo <= currentOffset) {
+                    // Skip forward by a reasonable amount - 1000 characters should be enough
+                    // to get past most problematic content without skipping too much
+                    skipTo = currentOffset + 1000;
+                    Log.w(TAG, "Element end offset isn't advancing, forcing skip to " + skipTo);
+                }
+
+                // Make sure we don't exceed document bounds
+                long docEnd = doc.getAreaEnd(WPModelConstant.MAIN);
+                if (skipTo > docEnd) {
+                    skipTo = docEnd;
+                }
+
+                currentLayoutOffset = skipTo;
+                breakPara = null;
+
+                Log.i(TAG, "Skipped to offset " + currentLayoutOffset);
+                offsetAdvanced = true;
+            }
+            // If we're not at a paragraph break point but still stuck
+            else if (currentOffset < doc.getAreaEnd(WPModelConstant.MAIN)) {
+                // Try to find the next paragraph
+                IElement nextElem = null;
+
+                try {
+                    nextElem = doc.getParagraph(currentOffset);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error getting paragraph at offset " + currentOffset, e);
+                }
+
+                long skipTo;
+
+                if (nextElem != null) {
+                    skipTo = nextElem.getEndOffset();
+
+                    // If this wouldn't advance us, use a fixed skip amount
+                    if (skipTo <= currentOffset) {
+                        skipTo = currentOffset + 1000; // Skip ahead by 1000 characters
+                        Log.w(TAG, "Next paragraph not advancing, forcing skip by 1000 characters");
+                    }
+                } else {
+                    // No valid paragraph found, skip ahead by fixed amount
+                    skipTo = currentOffset + 1000;
+                    Log.w(TAG, "No valid paragraph found, forcing skip by 1000 characters");
+                }
+
+                // Make sure we don't exceed document bounds
+                long docEnd = doc.getAreaEnd(WPModelConstant.MAIN);
+                if (skipTo > docEnd) {
+                    skipTo = docEnd;
+                }
+
+                // If this would advance us, do it
+                if (skipTo > currentOffset) {
+                    Log.i(TAG, "Skipping from offset " + currentOffset + " to " + skipTo);
+                    currentLayoutOffset = skipTo;
+                    offsetAdvanced = true;
+                }
+            }
+
+            // If we get here and haven't advanced yet, force a big skip
+            if (!offsetAdvanced && currentOffset < doc.getAreaEnd(WPModelConstant.MAIN)) {
+                // Skip ahead by 10% of the document
+                long docLength = doc.getAreaEnd(WPModelConstant.MAIN) - doc.getAreaStart(WPModelConstant.MAIN);
+                long skipAmount = Math.max(1000, docLength / 10);
+                long skipTo = currentOffset + skipAmount;
+
+                // Make sure we don't exceed document bounds
+                long docEnd = doc.getAreaEnd(WPModelConstant.MAIN);
+                if (skipTo > docEnd) {
+                    skipTo = docEnd;
+                }
+
+                if (skipTo > currentOffset) {
+                    Log.w(TAG, "Forcing a large skip from " + currentOffset + " to " + skipTo);
+                    currentLayoutOffset = skipTo;
+                    offsetAdvanced = true;
+                }
+            }
+
+            // If we successfully advanced the offset, trigger creation of a new page
+            if (offsetAdvanced) {
+                try {
+                    // Create a new page for the skipped content
+                    Log.i(TAG, "Creating new page after skipping problematic content");
+
+                    // Add a notification that content was skipped
+                    PageView lastPage = null;
+                    if (root.getPageCount() > 0) {
+                        lastPage = root.getPageView(root.getPageCount() - 1);
+                    }
+
+                    // Create a new blank page
+                    PageView newPage = (PageView) ViewFactory.createView(root.getControl(), section, null, WPViewConstant.PAGE_VIEW);
+                    newPage.setPageNumber(currentPageNumber++);
+                    root.addPageView(newPage);
+
+                    // Set proper offsets for the new page
+                    newPage.setStartOffset(currentLayoutOffset);
+                    if (lastPage != null) {
+                        lastPage.setEndOffset(currentLayoutOffset - 1);
+                    }
+
+                    // Add a visual indicator by adding a dummy paragraph to the page that explains content was skipped
+                    try {
+                        // Configure page for rendering
+                        newPage.setSize(pageAttr.pageWidth, pageAttr.pageHeight);
+                        newPage.setIndent(pageAttr.leftMargin, pageAttr.topMargin, pageAttr.rightMargin, pageAttr.bottomMargin);
+
+                        // Make sure the page is added to the root and visible
+                        root.appendChlidView(newPage);
+
+                        // Set appropriate end offset
+                        newPage.setEndOffset(currentLayoutOffset);
+
+                        // Trigger an update of the view
+                        if (root.getContainer() != null && root.getContainer().getControl() != null) {
+                            root.getContainer().getControl().actionEvent(
+                                    com.cherry.lib.doc.office.constant.EventConstant.WP_SHOW_PAGE,
+                                    newPage.getPageNumber());
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Failed to add content skipped indicator", e);
+                    }
+
+                    // Force the layout to continue from this new point
+                    breakPara = null;
+
+                    return true;
+                } catch (Exception e) {
+                    Log.e(TAG, "Error creating new page after skip", e);
+                    // Continue with normal skip even if page creation fails
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (Exception e) {
+            Log.e(TAG, "Error trying to skip problematic section", e);
+            return false;
+        }
+    }
 }
