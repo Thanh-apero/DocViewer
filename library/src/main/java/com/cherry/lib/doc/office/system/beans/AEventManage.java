@@ -128,30 +128,30 @@ public abstract class AEventManage implements OnTouchListener,
                         }
                         toast.cancel();
                         
-                        if (isScroll)
-                        {
-                            isScroll = false;
-                            if (control.getApplicationType() == MainConstant.APPLICATION_TYPE_WP && zoomChange)
-                            {
-                                if (!control.getMainFrame().isZoomAfterLayoutForWord())
-                                {
-                                    control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
-                                }
-                            }
-                            if (control.getApplicationType() == MainConstant.APPLICATION_TYPE_PPT)
-                            {
-                                if (!control.isSlideShow())
-                                {
-                                    control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
-                                }
-                            }
-                            else
-                            {
-                                control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
-                            }
-                            
-                            control.actionEvent(EventConstant.SYS_UPDATE_TOOLSBAR_BUTTON_STATUS, null);
-                        }
+//                        if (isScroll)
+//                        {
+//                            isScroll = false;
+//                            if (control.getApplicationType() == MainConstant.APPLICATION_TYPE_WP && zoomChange)
+//                            {
+//                                if (!control.getMainFrame().isZoomAfterLayoutForWord())
+//                                {
+//                                    control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
+//                                }
+//                            }
+//                            if (control.getApplicationType() == MainConstant.APPLICATION_TYPE_PPT)
+//                            {
+//                                if (!control.isSlideShow())
+//                                {
+//                                    control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
+//                                }
+//                            }
+//                            else
+//                            {
+//                                control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
+//                            }
+//
+//                            control.actionEvent(EventConstant.SYS_UPDATE_TOOLSBAR_BUTTON_STATUS, null);
+//                        }
                         if (control.getApplicationType() != MainConstant.APPLICATION_TYPE_WP)
                         {
                             zoomChange = false;
@@ -402,7 +402,7 @@ public abstract class AEventManage implements OnTouchListener,
     {
         if (mScroller != null && !mScroller.isFinished())
         {
-            isFling = true;
+            isFling = false;
             mScroller.abortAnimation();
         }
     }

@@ -39,7 +39,8 @@ import com.cherry.lib.doc.office.system.beans.AEventManage;
  */
 public class WPEventManage extends AEventManage {
     /**
-     * @param spreadsheet
+     * @param word     the word view
+     * @param control  the control interface
      */
     public WPEventManage(Word word, IControl control) {
         super(word.getContext(), control);
@@ -182,103 +183,69 @@ public class WPEventManage extends AEventManage {
      */
     public void fling(int velocityX, int velocityY) {
         super.fling(velocityX, velocityY);
-        Rectangle r = ((Word) word).getVisibleRect();
+        Rectangle r = word.getVisibleRect();
         float zoom = word.getZoom();
-        // Y方向滚动
-        oldY = 0;
-        oldX = 0;
-        int wW = 0;
+        int viewWidth = r.width;
+        int viewHeight = r.height;
+
+        int contentWidth = 0;
+        int contentHeight = 0;
+
         if (word.getCurrentRootType() == WPViewConstant.NORMAL_ROOT
                 && control.getMainFrame().isZoomAfterLayoutForWord()) {
             if (word.getWidth() == word.getWordWidth()) {
-                wW = word.getWidth();
+                contentWidth = word.getWidth();
             } else {
-                wW = (int) (word.getWordWidth() * zoom) + 5;
+                contentWidth = (int) (word.getWordWidth() * zoom);
             }
+
         } else {
-            wW = (int) (word.getWordWidth() * zoom);
+            contentWidth = (int) (word.getWordWidth() * zoom);
         }
-        if (Math.abs(velocityY) > Math.abs(velocityX)) {
-            oldY = r.y;
-            mScroller.fling(r.x, r.y, 0, velocityY, 0, r.x, 0, (int) (word.getWordHeight() * zoom) - r.height);
+        contentHeight = (int) (word.getWordHeight() * zoom);
+
+        int maxX = Math.max(0, contentWidth - viewWidth);
+        int maxY = Math.max(0, contentHeight - viewHeight);
+
+        int startX = r.x;
+        int startY = r.y;
+
+        if (!mScroller.isFinished()) {
+            mScroller.abortAnimation();
         }
-        // X方向流动
-        else {
-            oldX = r.x;
-            mScroller.fling(r.x, r.y, velocityX, 0, 0, wW - r.width, r.y, 0);
-        }
+
+        mScroller.fling(startX, startY, velocityX, velocityY, 0, maxX, 0, maxY);
+
+        isFling = true;
         word.postInvalidate();
-        //
-    }
-
-    /**
-     *
-     */
-    public boolean onDoubleTapEvent(MotionEvent e) {
-        /*if (e.getAction() == MotionEvent.ACTION_UP)
-        {
-            int x = convertCoorForX(e.getX());
-            int y = convertCoorForY(e.getY());
-            IView view = WPViewKit.instance().getView((Word)word, x, y, WPViewConstant.PARAGRAPH_VIEW, false);
-            if (view != null)
-            {
-                word.getHighlight().addHighlight(view.getStartOffset(null), view.getEndOffset(null));
-                word.postInvalidate();
-                word.getControl().actionEvent(EventConstant.SYS_UPDATE_TOOLSBAR_BUTTON_STATUS, null);
-            }
-        }*/
-        super.onDoubleTapEvent(e);
-        return true;
-    }
-
-    /**
-     *
-     */
-    public boolean onSingleTapUp(MotionEvent e) {
-        super.onSingleTapUp(e);
-        if (e.getAction() == MotionEvent.ACTION_UP) {
-            int x = convertCoorForX(e.getX());
-            int y = convertCoorForY(e.getY());
-            long offset = word.viewToModel(x, y, false);
-            if (offset >= 0) {
-                IElement leaf = word.getDocument().getLeaf(offset);
-                if (leaf != null) {
-                    int hyID = AttrManage.instance().getHperlinkID(leaf.getAttribute());
-                    if (hyID >= 0) {
-                        Hyperlink hylink = control.getSysKit().getHyperlinkManage().getHyperlink(hyID);
-                        if (hylink != null) {
-                            control.actionEvent(EventConstant.APP_HYPERLINK, hylink);
-                        }
-                    }
-                }
-            }
-        }
-        return true;
     }
 
     /**
      *
      */
     public void computeScroll() {
-        super.computeScroll();
         if (mScroller.computeScrollOffset()) {
             isFling = true;
             PictureKit.instance().setDrawPictrue(false);
+
             int sX = mScroller.getCurrX();
             int sY = mScroller.getCurrY();
-            if ((oldX == sX && oldY == sY)
-                    || (sX == word.getScrollX() && sY == word.getScrollY())) {
-                PictureKit.instance().setDrawPictrue(true);
-                mScroller.abortAnimation();
-                word.postInvalidate();
-                return;
-            }
-            oldX = sX;
-            oldY = sY;
+
             word.scrollTo(sX, sY);
+
+            word.postInvalidate();
+
         } else {
-            if (!PictureKit.instance().isDrawPictrue()) {
-                PictureKit.instance().setDrawPictrue(true);
+            if (isFling) {
+                isFling = false;
+
+                if (!PictureKit.instance().isDrawPictrue()) {
+                    PictureKit.instance().setDrawPictrue(true);
+                }
+
+                control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
+                control.actionEvent(EventConstant.SYS_UPDATE_TOOLSBAR_BUTTON_STATUS, null);
+
                 word.postInvalidate();
             }
         }
