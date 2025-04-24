@@ -181,8 +181,7 @@ public class WPEventManage extends AEventManage {
      * @param velocityY Y方向速率
      */
     public void fling(int velocityX, int velocityY) {
-        // Don't call super.fling here as we're implementing custom behavior
-
+        super.fling(velocityX, velocityY);
         Rectangle r = ((Word) word).getVisibleRect();
         float zoom = word.getZoom();
         // Y方向滚动
@@ -199,46 +198,17 @@ public class WPEventManage extends AEventManage {
         } else {
             wW = (int) (word.getWordWidth() * zoom);
         }
-
-        // Scale down velocity to make scrolling smoother
-        velocityX = velocityX / 3;
-        velocityY = velocityY / 3;
-
-        isFling = true;
-
         if (Math.abs(velocityY) > Math.abs(velocityX)) {
             oldY = r.y;
-            mScroller.fling(r.x, r.y, 0, -velocityY, 0, r.x, 0, (int) (word.getWordHeight() * zoom) - r.height);
+            mScroller.fling(r.x, r.y, 0, velocityY, 0, r.x, 0, (int) (word.getWordHeight() * zoom) - r.height);
         }
         // X方向流动
         else {
             oldX = r.x;
-            mScroller.fling(r.x, r.y, -velocityX, 0, 0, wW - r.width, r.y, 0);
+            mScroller.fling(r.x, r.y, velocityX, 0, 0, wW - r.width, r.y, 0);
         }
-
-        // Continue computing fling in the next frames
-        word.post(new Runnable() {
-            @Override
-            public void run() {
-                if (mScroller.computeScrollOffset()) {
-                    int x = mScroller.getCurrX();
-                    int y = mScroller.getCurrY();
-
-                    word.scrollTo(x, y);
-                    word.postInvalidate();
-
-                    // Keep animating until finished
-                    if (!mScroller.isFinished()) {
-                        word.post(this);
-                    } else {
-                        isFling = false;
-                        control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
-                    }
-                }
-            }
-        });
-
         word.postInvalidate();
+        //
     }
 
     /**

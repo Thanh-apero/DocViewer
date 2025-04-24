@@ -14,7 +14,6 @@ import com.cherry.lib.doc.office.system.IMainFrame;
 import com.cherry.lib.doc.office.system.MainControl;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.OnDoubleTapListener;
 import android.view.GestureDetector.OnGestureListener;
@@ -394,40 +393,6 @@ public abstract class AEventManage implements OnTouchListener,
      */
     public void fling(int velocityX, int velocityY)
     {
-        Log.d("bbbbbbb", "fling: velocityX=" + velocityX + ", velocityY=" + velocityY);
-        if (mScroller == null) {
-            return;
-        }
-
-        // Start fling animation with the given velocity
-        mScroller.fling(0, 0, velocityX, velocityY,
-                Integer.MIN_VALUE, Integer.MAX_VALUE,
-                Integer.MIN_VALUE, Integer.MAX_VALUE);
-
-        isFling = true;
-        control.getView().postInvalidate();
-        control.getView().post(new Runnable() {
-            @Override
-            public void run() {
-                if (mScroller != null && !mScroller.isFinished()) {
-                    mScroller.computeScrollOffset();
-                    int currX = mScroller.getCurrX();
-                    int currY = mScroller.getCurrY();
-
-                    // Implement scrolling logic based on the document type
-                    if (control != null && control.getView() != null) {
-                        control.getView().scrollBy(-currX / 10, -currY / 10); // Adjust divisor for scroll speed
-                        control.getView().postInvalidate();
-                        control.getView().post(this);
-                    }
-                } else {
-                    isFling = false;
-                    if (control != null) {
-                        control.actionEvent(EventConstant.APP_GENERATED_PICTURE_ID, null);
-                    }
-                }
-            }
-        });
     }
     
     /**
