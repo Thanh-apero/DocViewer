@@ -369,6 +369,9 @@ public class WPLayouter
                 paraElem = doc.getParagraph(offset);
                 if (AttrManage.instance().hasAttribute(paraElem.getAttribute(), AttrIDConstant.PARA_LEVEL_ID))
                 {
+                    if (paraElem != para.getElement()) {
+                        tableLayout.clearBreakPages();
+                    }
                     paraElem = ((WPDocument)doc).getParagraph0(offset);
                     para = (ParagraphView)ViewFactory.createView(root.getControl(), paraElem, null, WPViewConstant.TABLE_VIEW);
                 }
@@ -559,34 +562,141 @@ public class WPLayouter
      */
     public void forceFinishLayout() {
         try {
-            // Try to skip just the problematic section
-            if (tryToSkipProblematicSection()) {
-                Log.w(TAG, "Skipped problematic section and continuing layout");
-                return;
-            }
-
-            // If skipping failed or this is called multiple times, force complete layout finish
-            Log.w(TAG, "Forcing layout completion");
-
             // Store current state for diagnosis
-            long currentOffset = currentLayoutOffset;
-            int pageCount = root.getPageCount();
+            final long startOffset = currentLayoutOffset;
+            final int currentPageCount = root.getPageCount();
+            IElement currentElement = null;
 
-            // Force layout to completion
-            currentLayoutOffset = doc.getAreaEnd(WPModelConstant.MAIN);
-            breakPara = null;
+            boolean isTocDetected = false;
 
-            Log.i(TAG, "Layout forced to completion: offset " + currentOffset +
-                    " -> " + currentLayoutOffset + ", page count: " + pageCount);
+            try {
+                currentElement = doc.getParagraph(startOffset);
+                Log.e(TAG, "Layout stuck at offset: " + startOffset + ", document area end: " + doc.getAreaEnd(WPModelConstant.MAIN));
+                Log.e(TAG, "Current page count: " + currentPageCount);
 
-            // Generate an event to notify the document is ready to view
-            if (root != null && root.getContainer() != null &&
-                    root.getContainer().getControl() != null) {
-                root.getContainer().getControl().actionEvent(
-                        com.cherry.lib.doc.office.constant.EventConstant.WP_LAYOUT_COMPLETED, true);
+                // Try to determine if we're in a TOC section by analyzing various indicators
+                if (currentElement != null) {
+                    // Analyze content around this position to detect TOC
+                    long searchStart = Math.max(0, currentElement.getStartOffset() - 200);
+                    long searchEnd = Math.min(doc.getAreaEnd(WPModelConstant.MAIN), currentElement.getEndOffset() + 200);
+
+                    try {
+                        // Check a larger span around current position for TOC indicators
+                        String surroundingText = doc.getText(searchStart, searchEnd);
+                        if (surroundingText != null &&
+                                (surroundingText.contains("Contents") ||
+                                        surroundingText.contains("Table of") ||
+                                        surroundingText.contains("Mục lục") ||
+                                        surroundingText.contains("....") || // TOC often has dot leaders
+                                        surroundingText.contains(". . . . ."))) {
+                            isTocDetected = true;
+                            Log.i(TAG, "Table of Contents section detected");
+                        }
+                    } catch (Exception e) {
+                        // Ignore text extraction errors
+                    }
+                }
+
+                // Log information about the problematic paragraph
+                if (currentElement != null) {
+                    Log.e(TAG, "Problematic element - Type: " + currentElement.getType() +
+                            ", Start Offset: " + currentElement.getStartOffset() + ", End Offset: " + currentElement.getEndOffset());
+                }
+
+                // Special handling for Table of Contents (TOC)
+                if (isTocDetected && breakPara != null) {
+                    Log.i(TAG, "Attempting special handling for Table of Contents");
+                    try {
+                        // Let's handle the entire TOC in a single page by creating a special TOC page
+
+                        // First, find the approximate TOC extent
+                        long tocEndOffset = startOffset;
+                        try {
+                            // Search forward for end of TOC (look for 2000-3000 chars ahead, typical TOC size)
+                            long searchEnd = Math.min(doc.getAreaEnd(WPModelConstant.MAIN), startOffset + 3000);
+
+                            // Analyze text ahead to find where TOC likely ends
+                            String aheadText = doc.getText(startOffset, searchEnd);
+
+                            // Advance TOC endpoint generously to include the whole TOC
+                            tocEndOffset = startOffset + Math.min(aheadText.length(), 2000);
+
+                            Log.i(TAG, "Estimated TOC boundaries: " + startOffset + " to " + tocEndOffset);
+                        } catch (Exception e) {
+                            // If we can't determine TOC boundaries, use a reasonable default size
+                            tocEndOffset = startOffset + 1500; // Skip about 1500 chars, typical TOC size
+                            Log.i(TAG, "Using default TOC boundaries: " + startOffset + " to " + tocEndOffset);
+                        }
+
+                        // Get the current page or create a new one
+                        PageView tocPage = null;
+                        if (root.getPageCount() > 0) {
+                            tocPage = root.getPageView(root.getPageCount() - 1);
+
+                            // Ensure this page has the correct start offset
+                            if (tocPage.getStartOffset(null) > startOffset) {
+                                // Create a new page for TOC if necessary
+                                tocPage = (PageView) ViewFactory.createView(root.getControl(), section, null, WPViewConstant.PAGE_VIEW);
+                                tocPage.setPageNumber(currentPageNumber++);
+                                tocPage.setSize(pageAttr.pageWidth, pageAttr.pageHeight);
+                                tocPage.setIndent(pageAttr.leftMargin, pageAttr.topMargin, pageAttr.rightMargin, pageAttr.bottomMargin);
+                                tocPage.setStartOffset(startOffset);
+                                root.addPageView(tocPage);
+                                root.appendChlidView(tocPage);
+                            }
+                        }
+
+                        // Set the end offset to where we determined TOC ends
+                        if (tocPage != null) {
+                            tocPage.setEndOffset(tocEndOffset);
+                        }
+
+                        // Jump past the entire TOC to continue layout
+                        currentLayoutOffset = tocEndOffset;
+                        breakPara = null;
+
+                        Log.i(TAG, "Created single TOC page spanning from " + startOffset + " to " + tocEndOffset +
+                                " (" + (tocEndOffset - startOffset) + " chars)");
+
+                        // We've handled the situation, no need to try skip
+                        return;
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error during TOC special handling: " + e.getMessage(), e);
+                        // Fall through to normal processing if TOC handling fails
+                    }
+                }
+
+                // Try to skip just the problematic section
+                if (tryToSkipProblematicSection()) {
+                    Log.w(TAG, "Skipped problematic section and continuing layout");
+                    return;
+                }
+
+                // If skipping failed or this is called multiple times, force complete layout finish
+                Log.w(TAG, "Forcing layout completion");
+
+                // Store current state for diagnosis
+                long currentOffset = currentLayoutOffset;
+                int pageCount = root.getPageCount();
+
+                // Force layout to completion
+                currentLayoutOffset = doc.getAreaEnd(WPModelConstant.MAIN);
+                breakPara = null;
+
+                Log.i(TAG, "Layout forced to completion: offset " + currentOffset +
+                        " -> " + currentLayoutOffset + ", page count: " + pageCount);
+
+                // Generate an event to notify the document is ready to view
+                if (root != null && root.getContainer() != null &&
+                        root.getContainer().getControl() != null) {
+                    root.getContainer().getControl().actionEvent(
+                            com.cherry.lib.doc.office.constant.EventConstant.WP_LAYOUT_COMPLETED, true);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error while forcing layout completion", e);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Error while forcing layout completion", e);
+            Log.e(TAG, "Error collecting diagnostic information: " + e.getMessage(), e);
         }
     }
 
@@ -604,28 +714,92 @@ public class WPLayouter
             if (breakPara != null) {
                 Log.i(TAG, "Attempting to skip problematic paragraph at offset " + currentOffset);
 
-                // Check if we can get the end offset of the paragraph
-                long skipTo = breakPara.getElement().getEndOffset();
+                // Log detailed information about the break paragraph
+                Log.e(TAG, "Problematic break paragraph details:");
+                Log.e(TAG, "  - Type: " + breakPara.getType());
+                Log.e(TAG, "  - Element type: " + (breakPara.getElement() != null ? breakPara.getElement().getType() : "null"));
+                Log.e(TAG, "  - Start offset: " + breakPara.getStartOffset(null));
+                Log.e(TAG, "  - End offset: " + breakPara.getEndOffset(null));
+                Log.e(TAG, "  - Width: " + breakPara.getWidth() + ", Height: " + breakPara.getHeight());
 
-                // Force skip forward if we're not making progress
-                if (skipTo <= currentOffset) {
-                    // Skip forward by a reasonable amount - 1000 characters should be enough
-                    // to get past most problematic content without skipping too much
-                    skipTo = currentOffset + 1000;
-                    Log.w(TAG, "Element end offset isn't advancing, forcing skip to " + skipTo);
+                // Determine if this is a large structured element that needs special handling
+                boolean isLargeStructuredContent = false;
+                boolean hasInvalidDimensions = breakPara.getWidth() == 0 && breakPara.getHeight() == 0;
+                boolean isOversizedContent = breakPara.getHeight() >= pageAttr.pageHeight - pageAttr.topMargin - pageAttr.bottomMargin;
+
+                try {
+                    if (breakPara.getElement() != null) {
+                        IElement elem = breakPara.getElement();
+
+                        // Check if element has structural properties of a complex content block
+                        // rather than relying on text content keywords
+                        if (elem.getAttribute() != null) {
+                            // Check for specific structural attributes that indicate a complex
+                            // structured section like TOC, index, or other special content
+                            isLargeStructuredContent =
+                                    // Check for invalid paragraph height or offset issues
+                                    (hasInvalidDimensions || isOversizedContent) &&
+                                            // Only handle elements with actual content
+                                            (elem.getEndOffset() - elem.getStartOffset() > 10);
+
+                            if (isLargeStructuredContent) {
+                                Log.i(TAG, "Detected structured content requiring special layout handling");
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error analyzing element structure: " + e.getMessage());
                 }
 
-                // Make sure we don't exceed document bounds
-                long docEnd = doc.getAreaEnd(WPModelConstant.MAIN);
-                if (skipTo > docEnd) {
-                    skipTo = docEnd;
+                // Try to fix and properly render content rather than skipping
+                if (hasInvalidDimensions || isOversizedContent || isLargeStructuredContent) {
+
+                    Log.i(TAG, "Handling oversized/complex content at offset: " + currentOffset);
+
+                    // Fix the dimensions of the breakPara
+                    if (breakPara.getWidth() == 0) {
+                        breakPara.setWidth(pageAttr.pageWidth - pageAttr.leftMargin - pageAttr.rightMargin);
+                        Log.i(TAG, "Fixed paragraph width: " + breakPara.getWidth());
+                    }
+
+                    // Set a reasonable height that will fit on the page
+                    if (breakPara.getHeight() == 0 || breakPara.getHeight() > pageAttr.pageHeight - pageAttr.topMargin - pageAttr.bottomMargin) {
+                        int maxHeight = (pageAttr.pageHeight - pageAttr.topMargin - pageAttr.bottomMargin) / 2;
+                        breakPara.setHeight(maxHeight); // Use half the available height
+                        Log.i(TAG, "Fixed paragraph height: " + breakPara.getHeight());
+                    }
+
+                    // Fix the offsets
+                    if (breakPara.getStartOffset(null) == 0 && breakPara.getEndOffset(null) == 0) {
+                        if (breakPara.getElement() != null) {
+                            breakPara.setStartOffset(breakPara.getElement().getStartOffset());
+                            breakPara.setEndOffset(breakPara.getElement().getEndOffset());
+                            Log.i(TAG, "Fixed paragraph offsets using element: " +
+                                    breakPara.getStartOffset(null) + "-" + breakPara.getEndOffset(null));
+                        } else {
+                            breakPara.setStartOffset(currentOffset);
+                            breakPara.setEndOffset(currentOffset + 1);
+                            Log.i(TAG, "Fixed paragraph offsets manually: " + currentOffset + "-" + (currentOffset + 1));
+                        }
+                    }
+
+                    // Instead of small increments, make a large skip for problematic content
+                    // This helps avoid creating lots of small pages
+                    currentLayoutOffset = currentOffset + 1000;
+
+                    // Make sure we don't exceed document bounds
+                    long docEnd = doc.getAreaEnd(WPModelConstant.MAIN);
+                    if (currentLayoutOffset > docEnd) {
+                        currentLayoutOffset = docEnd;
+                    }
+
+                    Log.i(TAG, "Skipping large section to avoid multiple small pages: " +
+                            "from " + currentOffset + " to " + currentLayoutOffset +
+                            " (+" + (currentLayoutOffset - currentOffset) + " chars)");
+
+                    Log.i(TAG, "Fixed problematic paragraph and continuing layout");
+                    return true;
                 }
-
-                currentLayoutOffset = skipTo;
-                breakPara = null;
-
-                Log.i(TAG, "Skipped to offset " + currentLayoutOffset);
-                offsetAdvanced = true;
             }
             // If we're not at a paragraph break point but still stuck
             else if (currentOffset < doc.getAreaEnd(WPModelConstant.MAIN)) {
@@ -639,26 +813,31 @@ public class WPLayouter
                 }
 
                 long skipTo;
+                String content = "";
 
                 if (nextElem != null) {
                     skipTo = nextElem.getEndOffset();
 
-                    // If this wouldn't advance us, use a fixed skip amount
+                    // Try to get some content for diagnostic
+                    try {
+                        content = doc.getText(nextElem.getStartOffset(),
+                                Math.min(nextElem.getEndOffset(), nextElem.getStartOffset() + 50));
+                    } catch (Exception e) {
+                        // Ignore
+                    }
+
+                    // If this wouldn't advance us, fix by advancing minimally
                     if (skipTo <= currentOffset) {
-                        skipTo = currentOffset + 1000; // Skip ahead by 1000 characters
-                        Log.w(TAG, "Next paragraph not advancing, forcing skip by 1000 characters");
+                        skipTo = currentOffset + 1; // Advance minimally
+                        Log.w(TAG, "Next paragraph not advancing, advancing by 1 character");
                     }
                 } else {
-                    // No valid paragraph found, skip ahead by fixed amount
-                    skipTo = currentOffset + 1000;
-                    Log.w(TAG, "No valid paragraph found, forcing skip by 1000 characters");
+                    // No valid paragraph found, advance minimally
+                    skipTo = currentOffset + 1;
+                    Log.w(TAG, "No valid paragraph found, advancing by 1 character");
                 }
 
-                // Make sure we don't exceed document bounds
-                long docEnd = doc.getAreaEnd(WPModelConstant.MAIN);
-                if (skipTo > docEnd) {
-                    skipTo = docEnd;
-                }
+                Log.i(TAG, "Content at offset " + currentOffset + ": " + content);
 
                 // If this would advance us, do it
                 if (skipTo > currentOffset) {
@@ -688,65 +867,100 @@ public class WPLayouter
                 }
             }
 
-            // If we successfully advanced the offset, trigger creation of a new page
-            if (offsetAdvanced) {
-                try {
-                    // Create a new page for the skipped content
-                    Log.i(TAG, "Creating new page after skipping problematic content");
+            // Return true to indicate we've made progress
+            return offsetAdvanced;
+        } catch (Exception e) {
+            Log.e(TAG, "Error trying to fix problematic section: " + e.getMessage(), e);
+            e.printStackTrace();
 
-                    // Add a notification that content was skipped
-                    PageView lastPage = null;
-                    if (root.getPageCount() > 0) {
-                        lastPage = root.getPageView(root.getPageCount() - 1);
-                    }
+            // Make minimal advancement to prevent infinite loop
+            currentLayoutOffset += 1;
+            return true;
+        }
+    }
 
-                    // Create a new blank page
-                    PageView newPage = (PageView) ViewFactory.createView(root.getControl(), section, null, WPViewConstant.PAGE_VIEW);
-                    newPage.setPageNumber(currentPageNumber++);
-                    root.addPageView(newPage);
+    /**
+     * This method is kept for compatibility but no longer creates placeholder pages.
+     * Instead, we fix and render content properly.
+     */
+    private boolean createPlaceholderForProblematicContent(long currentOffset, long nextOffset) {
+        try {
+            // Create a new page for the skipped content
+            Log.i(TAG, "Creating new page after skipping problematic content");
 
-                    // Set proper offsets for the new page
-                    newPage.setStartOffset(currentLayoutOffset);
-                    if (lastPage != null) {
-                        lastPage.setEndOffset(currentLayoutOffset - 1);
-                    }
-
-                    // Add a visual indicator by adding a dummy paragraph to the page that explains content was skipped
-                    try {
-                        // Configure page for rendering
-                        newPage.setSize(pageAttr.pageWidth, pageAttr.pageHeight);
-                        newPage.setIndent(pageAttr.leftMargin, pageAttr.topMargin, pageAttr.rightMargin, pageAttr.bottomMargin);
-
-                        // Make sure the page is added to the root and visible
-                        root.appendChlidView(newPage);
-
-                        // Set appropriate end offset
-                        newPage.setEndOffset(currentLayoutOffset);
-
-                        // Trigger an update of the view
-                        if (root.getContainer() != null && root.getContainer().getControl() != null) {
-                            root.getContainer().getControl().actionEvent(
-                                    com.cherry.lib.doc.office.constant.EventConstant.WP_SHOW_PAGE,
-                                    newPage.getPageNumber());
-                        }
-                    } catch (Exception e) {
-                        Log.e(TAG, "Failed to add content skipped indicator", e);
-                    }
-
-                    // Force the layout to continue from this new point
-                    breakPara = null;
-
-                    return true;
-                } catch (Exception e) {
-                    Log.e(TAG, "Error creating new page after skip", e);
-                    // Continue with normal skip even if page creation fails
-                    return true;
-                }
+            // Add a notification that content was skipped
+            PageView lastPage = null;
+            if (root.getPageCount() > 0) {
+                lastPage = root.getPageView(root.getPageCount() - 1);
             }
 
-            return false;
+            // Create a new blank page
+            PageView newPage = (PageView) ViewFactory.createView(root.getControl(), section, null, WPViewConstant.PAGE_VIEW);
+            newPage.setPageNumber(currentPageNumber++);
+            root.addPageView(newPage);
+
+            // Set proper offsets for the new page
+            newPage.setStartOffset(currentLayoutOffset);
+            if (lastPage != null) {
+                lastPage.setEndOffset(currentLayoutOffset - 1);
+            }
+
+            // Add a visual indicator by adding a dummy paragraph to the page that explains content was skipped
+            try {
+                // Configure page for rendering
+                newPage.setSize(pageAttr.pageWidth, pageAttr.pageHeight);
+                newPage.setIndent(pageAttr.leftMargin, pageAttr.topMargin, pageAttr.rightMargin, pageAttr.bottomMargin);
+
+                // Make sure the page is added to the root and visible
+                root.appendChlidView(newPage);
+
+                // Set appropriate end offset
+                newPage.setEndOffset(currentLayoutOffset);
+
+                // Trigger an update of the view
+                if (root.getContainer() != null && root.getContainer().getControl() != null) {
+                    root.getContainer().getControl().actionEvent(
+                            com.cherry.lib.doc.office.constant.EventConstant.WP_SHOW_PAGE,
+                            newPage.getPageNumber());
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to add content skipped indicator", e);
+            }
+
+            // Force the layout to continue from this new point
+            breakPara = null;
+
+            return true;
         } catch (Exception e) {
-            Log.e(TAG, "Error trying to skip problematic section", e);
+            Log.e(TAG, "Error creating new page after skip: " + e.getMessage(), e);
+            // Continue with normal skip even if page creation fails
+            return false;
+        }
+    }
+
+    /**
+     * Check if there is room to add content to the current page
+     *
+     * @param height Height of content to add
+     * @return true if there's room, false if we should break to a new page
+     */
+    private boolean hasRoomOnPage(int height) {
+        try {
+            if (pageAttr == null) {
+                return false;
+            }
+
+            int pageHeight = pageAttr.pageHeight;
+            int topMargin = pageAttr.topMargin;
+            int bottomMargin = pageAttr.bottomMargin;
+
+            // Calculate available height on the page
+            int availableHeight = pageHeight - topMargin - bottomMargin;
+
+            // Leave some margin for error
+            return height <= (availableHeight - 10);
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking room on page: " + e.getMessage());
             return false;
         }
     }

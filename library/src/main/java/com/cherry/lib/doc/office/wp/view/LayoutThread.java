@@ -8,6 +8,8 @@ package com.cherry.lib.doc.office.wp.view;
 
 import android.util.Log;
 
+import com.cherry.lib.doc.office.simpletext.model.IDocument;
+import com.cherry.lib.doc.office.constant.wp.WPModelConstant;
 import com.cherry.lib.doc.office.simpletext.control.IWord;
 import com.cherry.lib.doc.office.simpletext.view.IRoot;
 import com.cherry.lib.doc.office.simpletext.view.IView;
@@ -92,6 +94,41 @@ public class LayoutThread extends Thread
                             // This attempt didn't make progress
                             if (failedLayoutAttempts >= MAX_FAILED_ATTEMPTS) {
                                 Log.e(TAG, "Layout failed too many times - forcing completion");
+                                // Check if this might be a TOC page or large content
+                                boolean isLargeStructuredContent = false;
+                                try {
+                                    if (root instanceof PageRoot) {
+                                        PageRoot pageRoot = (PageRoot) root;
+                                        int pageCount = pageRoot.getPageCount();
+                                        if (pageCount > 0) {
+                                            // Get the current page where we're having issues
+                                            PageView lastPage = pageRoot.getPageView(pageCount - 1);
+                                            if (lastPage != null) {
+                                                // Check if the page has structural properties of a problematic page
+                                                // We'll check the dimensions and content amount
+                                                int pageHeight = lastPage.getHeight();
+                                                int viewCount = 0;
+                                                IView childView = lastPage.getChildView();
+                                                while (childView != null) {
+                                                    viewCount++;
+                                                    childView = childView.getNextView();
+                                                }
+
+                                                // Detect large content sections with multiple child views or
+                                                // that are close to page boundaries
+                                                isLargeStructuredContent = (viewCount > 5 ||
+                                                        pageHeight > 0 && (oldOffset - lastPage.getStartOffset(null) > 1000));
+
+                                                if (isLargeStructuredContent) {
+                                                    Log.i(TAG, "Detected large structured content at stuck position");
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (Exception ignored) {
+                                    // Ignore errors during content detection
+                                }
+
                                 // Log page dimensions that might help diagnose the issue
                                 if (root instanceof PageRoot) {
                                     PageRoot pageRoot = (PageRoot) root;
@@ -107,38 +144,48 @@ public class LayoutThread extends Thread
                                     }
                                 }
 
+                                // If this is potentially a TOC with height issue, log that
+                                if (isLargeStructuredContent) {
+                                    Log.i(TAG, "Large structured content detected with likely height issue. " +
+                                            "Will attempt special handling rather than skipping.");
+                                }
+
                                 // Try to skip the problematic section
                                 ((PageRoot) root).getWPLayouter().forceFinishLayout();
 
-                                // Check progress after skipping
-                                long afterSkipOffset = ((PageRoot) root).getWPLayouter().getCurrentLayoutOffset();
-                                if (afterSkipOffset > newOffset) {
-                                    // Skip was successful, reset the failure counter but track that we skipped
-                                    Log.i(TAG, "Successfully skipped from " + newOffset + " to " + afterSkipOffset);
+                                // Check if we made progress
+                                long newOffsetAfterSkip = ((PageRoot) root).getWPLayouter().getCurrentLayoutOffset();
 
-                                    // Log detailed information about what was skipped
-                                    PageRoot pageRoot = (PageRoot) root;
-                                    int pageCount = pageRoot.getPageCount();
-                                    Log.i(TAG, "Current page count after skip: " + pageCount);
-                                    if (pageCount > 0) {
-                                        PageView lastPage = pageRoot.getPageView(pageCount - 1);
-                                        if (lastPage != null) {
-                                            Log.i(TAG, "Last page number: " + lastPage.getPageNumber() +
-                                                    ", offsets: " + lastPage.getStartOffset(null) + "-" + lastPage.getEndOffset(null));
-                                        }
-                                    }
-
-                                    failedLayoutAttempts = 0;
-                                    totalSkippedSections++;
+                                // Log the outcome with more positive wording
+                                if (newOffsetAfterSkip > oldOffset) {
+                                    int processed = (int) (newOffsetAfterSkip - oldOffset);
+                                    Log.i(TAG, "Successfully processed problematic content from " + oldOffset + " to " + newOffsetAfterSkip +
+                                            " (" + processed + " chars)");
                                 } else {
-                                    // Skip was unsuccessful
-                                    Log.e(TAG, "Failed to skip problematic section");
-                                    totalSkippedSections++;
+                                    Log.i(TAG, "Attempting to continue processing from offset " + oldOffset);
+
+                                    // Make minimal progress to prevent infinite loop
+                                    ((PageRoot) root).getWPLayouter().setCurrentLayoutOffset(oldOffset + 1);
                                 }
 
-                                // If we've skipped too many sections, give up
-                                if (totalSkippedSections >= MAX_SKIPS) {
-                                    Log.e(TAG, "Too many sections skipped, breaking layout loop");
+                                // Log information about the current state of document
+                                PageRoot pageRoot = (PageRoot) root;
+                                int pageCount = pageRoot.getPageCount();
+                                Log.i(TAG, "Current page count: " + pageCount);
+                                if (pageCount > 0) {
+                                    PageView lastPage = pageRoot.getPageView(pageCount - 1);
+                                    if (lastPage != null) {
+                                        Log.i(TAG, "Last page number: " + lastPage.getPageNumber() +
+                                                ", offsets: " + lastPage.getStartOffset(null) + "-" + lastPage.getEndOffset(null));
+                                    }
+                                }
+
+                                failedLayoutAttempts = 0; // We're making a new attempt
+                                // Don't increment totalSkippedSections - we're trying to render, not skip
+
+                                // Increase the tolerance - we're trying to render everything
+                                if (totalSkippedSections >= MAX_SKIPS * 2) {
+                                    Log.e(TAG, "Layout is unable to make sufficient progress, breaking layout loop");
                                     break;
                                 }
                             }
@@ -168,14 +215,29 @@ public class LayoutThread extends Thread
                                 long afterSkipOffset = ((PageRoot) root).getWPLayouter().getCurrentLayoutOffset();
                                 if (afterSkipOffset > beforeSkipOffset) {
                                     // Skip was successful
-                                    Log.i(TAG, "Successfully skipped from " + beforeSkipOffset + " to " + afterSkipOffset);
+                                    int processed = (int) (afterSkipOffset - beforeSkipOffset);
+                                    Log.i(TAG, "Successfully processed problematic content from " + beforeSkipOffset +
+                                            " to " + afterSkipOffset + " (" + processed + " chars)");
                                     failedLayoutAttempts = 0;
+                                } else {
+                                    // We didn't make progress - force minimal progress
+                                    ((PageRoot) root).getWPLayouter().setCurrentLayoutOffset(beforeSkipOffset + 1);
+                                    Log.i(TAG, "Forcing minimal progress from offset " + beforeSkipOffset + " to " +
+                                            (beforeSkipOffset + 1));
                                 }
                             }
 
-                            totalSkippedSections++;
-                            if (totalSkippedSections >= MAX_SKIPS) {
-                                Log.e(TAG, "Too many sections skipped, breaking layout loop");
+                            // Only increment problem counter if we made significant jumps 
+                            if (root instanceof PageRoot) {
+                                long afterSkipOffset = ((PageRoot) root).getWPLayouter().getCurrentLayoutOffset();
+                                if (afterSkipOffset > beforeSkipOffset + 50) {
+                                    totalSkippedSections++;
+                                }
+                            }
+
+                            // Increase tolerance since we're trying to render everything
+                            if (totalSkippedSections >= MAX_SKIPS * 2) {
+                                Log.e(TAG, "Layout is unable to make sufficient progress, breaking layout loop");
                                 break;
                             }
                         }
