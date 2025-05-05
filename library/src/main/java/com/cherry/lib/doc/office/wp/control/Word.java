@@ -47,6 +47,15 @@ import com.cherry.lib.doc.office.wp.view.WPViewKit;
 
 public class Word extends LinearLayout implements IWord {
 
+    public interface PageListener {
+        void onPageChange(int numberPage);
+    }
+    private PageListener pageListener;
+
+    public void setPageListener(PageListener pageListener){
+        this.pageListener = pageListener;
+    }
+
     /**
      * @param context
      * @param attrs
@@ -1001,6 +1010,14 @@ public class Word extends LinearLayout implements IWord {
         }
     }
 
+    @Override
+    public void postInvalidate() {
+        super.postInvalidate();
+        if (pageListener != null) {
+            pageListener.onPageChange(getCurrentPageNumber());
+        }
+    }
+
     /**
      *
      */
@@ -1045,6 +1062,14 @@ public class Word extends LinearLayout implements IWord {
         doc = null;
         paint = null;
         visibleRect = null;
+    }
+
+    public Boolean isFinishLayout() {
+        if (pageRoot != null) {
+            return pageRoot.isLayoutFinish();
+        } else {
+            return false;
+        }
     }
 
     private int preShowPageIndex = -1;

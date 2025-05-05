@@ -592,6 +592,11 @@ public class WPControl extends AbstractControl
         wpView = null;
         mainControl = null;
     }
+
+    public Word getWordView()
+    {
+        return wpView;
+    }
     
     private boolean isDispose;
     //
