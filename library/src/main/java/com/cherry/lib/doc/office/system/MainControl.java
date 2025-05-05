@@ -475,11 +475,8 @@ public class MainControl extends AbstractControl {
         return appControl.getView();
     }
 
-    public WPControl getAppControl(){
-        if(appControl instanceof WPControl){
-            return (WPControl) appControl;
-        }
-        return null;
+    public IControl getAppControl(){
+        return appControl;
     }
 
     /**

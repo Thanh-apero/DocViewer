@@ -11,6 +11,7 @@ import com.cherry.lib.doc.office.common.IOfficeToPicture;
 import com.cherry.lib.doc.office.constant.EventConstant;
 import com.cherry.lib.doc.office.constant.wp.WPViewConstant;
 import com.cherry.lib.doc.office.res.ResKit;
+import com.cherry.lib.doc.office.system.IControl;
 import com.cherry.lib.doc.office.system.IMainFrame;
 import com.cherry.lib.doc.office.system.MainControl;
 import com.cherry.lib.doc.office.wp.control.Word;
@@ -116,8 +117,8 @@ public abstract class IOffice implements IMainFrame {
         return control.getView();
     }
 
-    public Word getWord() {
-        return control.getAppControl().getWordView();
+    public IControl getAppControl() {
+        return control.getAppControl();
     }
     public void openFile(String filepath, int docSourceType, String fileType) {
         getControl().openFile(filepath, docSourceType, fileType);

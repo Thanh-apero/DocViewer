@@ -33,6 +33,7 @@ import com.cherry.lib.doc.interfaces.OnDownloadListener
 import com.cherry.lib.doc.interfaces.OnDocPageChangeListener
 import com.cherry.lib.doc.interfaces.OnWebLoadListener
 import com.cherry.lib.doc.office.IOffice
+import com.cherry.lib.doc.office.adapter.BaseViewAdapter
 import com.cherry.lib.doc.office.adapter.PageViewAdapter
 import com.cherry.lib.doc.pdf.PdfDownloader
 import com.cherry.lib.doc.pdf.PdfPageViewAdapter
@@ -238,9 +239,9 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
             }
 
             override fun openFileFinish() {
-                pageViewAdapter = PageViewAdapter(word)
+                pageViewAdapter = PageViewAdapter(appControl)
                 setupRecyclerView()
-                pageViewAdapter?.setupAdapter(this@DocView.lifecycleScope)
+                pageViewAdapter?.getAdapter()?.setupAdapter(this@DocView.lifecycleScope)
                 mDocContainer?.postDelayed({
                     mDocContainer.removeAllViews()
                     mDocContainer.addView(
@@ -392,7 +393,7 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
     }
 
     private fun setupRecyclerView(){
-        binding.rvPageView.adapter = pageViewAdapter
+        binding.rvPageView.adapter = pageViewAdapter?.getAdapter()
         binding.rvPageView.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
     }
 }
