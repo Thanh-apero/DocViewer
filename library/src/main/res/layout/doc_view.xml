@@ -1,53 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    xmlns:tools="http://schemas.android.com/tools">
+    android:layout_height="match_parent">
 
-    <com.cherry.lib.doc.pdf.PinchZoomRecyclerView
-        android:id="@+id/mRvPdf"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/transparent"
-        android:scrollbars="vertical"
-        tools:listitem="@layout/list_item_pdf" />
+        android:orientation="vertical">
 
-    <FrameLayout
-        android:id="@+id/mLlBigPdfImage"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/white"
-        android:visibility="gone">
-
-        <com.cherry.lib.doc.widget.PinchImageView
-            android:id="@+id/mIvPdf"
+        <FrameLayout
+            android:id="@+id/mFlDocContainer"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
-        <ProgressBar
-            android:id="@+id/mPbBigLoading"
-            android:layout_gravity="center"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:visibility="gone"
-            tools:visibility="visible"/>
-
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginTop="50dp"
-            android:layout_marginEnd="30dp"
-            android:scaleType="fitCenter"
-            android:src="@mipmap/ic_big_close"/>
-
-    </FrameLayout>
-
-    <FrameLayout
-        android:id="@+id/mFlDocContainer"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvPageView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
 
     <com.cherry.lib.doc.widget.PinchImageView
         android:id="@+id/mIvImage"

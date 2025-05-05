@@ -350,6 +350,11 @@ public class PageRoot extends AbstractView implements IRoot
         }
         word = null;
     }
+
+    public Boolean isLayoutFinish()
+    {
+        return wpLayouter.isLayoutFinish();
+    }
     
     // 文档的段落总数
     private int paraCount;
