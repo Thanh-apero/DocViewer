@@ -77,7 +77,7 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
 
     var sourceFilePath: String? = null
     var mViewPdfInPage: Boolean = true
-    private var pageViewAdapter: PageViewAdapter? = null
+    private var pageViewAdapter: BaseViewAdapter? = null
 
     private lateinit var binding: DocViewBinding
 
@@ -239,9 +239,9 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
             }
 
             override fun openFileFinish() {
-                pageViewAdapter = PageViewAdapter(appControl)
+                pageViewAdapter = PageViewAdapter(appControl).getAdapter()
                 setupRecyclerView()
-                pageViewAdapter?.getAdapter()?.setupAdapter(this@DocView.lifecycleScope)
+                pageViewAdapter?.setupAdapter(this@DocView.lifecycleScope)
                 mDocContainer?.postDelayed({
                     mDocContainer.removeAllViews()
                     mDocContainer.addView(
@@ -393,7 +393,7 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
     }
 
     private fun setupRecyclerView(){
-        binding.rvPageView.adapter = pageViewAdapter?.getAdapter()
+        binding.rvPageView.adapter = pageViewAdapter
         binding.rvPageView.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
     }
 }
