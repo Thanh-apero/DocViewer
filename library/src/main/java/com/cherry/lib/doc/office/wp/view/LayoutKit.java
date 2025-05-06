@@ -106,19 +106,33 @@ public class LayoutKit {
         int dx = WPViewConstant.PAGE_SPACE;
         int dy = WPViewConstant.PAGE_SPACE;
         IView pv = root.getChildView();
-        int width = pv.getWidth();
-        // int visibleWidth = word.getWidth();
-        // visibleWidth = visibleWidth == 0 ? word.getWordWidth() : visibleWidth;
-        // if (visibleWidth > width * zoom) {
-        //     dx += (int) (visibleWidth / zoom - width - WPViewConstant.PAGE_SPACE * 2) / 2;
-        // }
-        while (pv != null) {
-            pv.setLocation(dx, dy);
-            dy += pv.getHeight() + WPViewConstant.PAGE_SPACE;
-            pv = pv.getNextView();
+        int totalWidth = 0;
+        int totalHeight = 0;
+
+        if (word.isHorizontalScroll()) {
+            int maxHeight = 0;
+            dy = Math.max(WPViewConstant.PAGE_SPACE, (word.getHeight() - (int) (pv.getHeight() * zoom)) / 2);
+            while (pv != null) {
+                pv.setLocation(dx, dy);
+                dx += pv.getWidth() + WPViewConstant.PAGE_SPACE;
+                pv = pv.getNextView();
+            }
+            totalWidth = dx;
+            totalHeight = maxHeight + dy + WPViewConstant.PAGE_SPACE;
+        } else {
+            int maxWidth = 0;
+            while (pv != null) {
+                pv.setLocation(dx, dy);
+                dy += pv.getHeight() + WPViewConstant.PAGE_SPACE;
+                maxWidth = Math.max(maxWidth, pv.getWidth());
+                pv = pv.getNextView();
+            }
+            totalWidth = maxWidth + WPViewConstant.PAGE_SPACE * 2;
+            totalHeight = dy;
         }
-        root.setSize(width + WPViewConstant.PAGE_SPACE * 2, dy);
-        ((Word) root.getContainer()).setSize(width + WPViewConstant.PAGE_SPACE * 2, dy);
+
+        root.setSize(totalWidth, totalHeight);
+        ((Word) root.getContainer()).setSize(totalWidth, totalHeight);
     }
 
     /**
@@ -387,7 +401,6 @@ public class LayoutKit {
      * @param pageAttr
      * @param paraAttr
      * @param para
-     * @param startOffset
      * @param x
      * @param y
      * @param w

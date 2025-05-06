@@ -541,7 +541,7 @@ public class Word extends LinearLayout implements IWord {
             return printWord.getCurrentPageNumber();
         }
         PageView pv = WPViewKit.instance().getPageView(pageRoot, (int) (getScrollX() / zoom),
-                (int) (getScrollY() / zoom) + getHeight() / 3);
+                (int) (getScrollY() / zoom) + getHeight() / 3, isHorizontalScroll);
         if (pv == null) {
             return 1;
         }
@@ -562,7 +562,7 @@ public class Word extends LinearLayout implements IWord {
             return null;
         }
         PageView pv = WPViewKit.instance().getPageView(pageRoot, (int) (getScrollX() / zoom),
-                (int) (getScrollY() / zoom) + getHeight() / 5);
+                (int) (getScrollY() / zoom) + getHeight() / 5, isHorizontalScroll);
         if (pv == null) {
             IAttributeSet attr = doc.getSection(0).getAttribute();
             int pageWidth = (int) (AttrManage.instance().getPageWidth(attr) * MainConstant.TWIPS_TO_PIXEL);
@@ -778,7 +778,11 @@ public class Word extends LinearLayout implements IWord {
         }
         IView view = pageRoot.getPageView(index);
         if (view != null) {
-            this.scrollTo(getScrollX(), (int) (view.getY() * zoom));
+            if (isHorizontalScroll){
+                this.scrollTo((int) (view.getX() * zoom), getScrollY());
+            } else {
+                this.scrollTo(getScrollX(), (int) (view.getY() * zoom));
+            }
         }
     }
 
@@ -1116,4 +1120,22 @@ public class Word extends LinearLayout implements IWord {
     private WPFind wpFind;
     //
     private Rectangle visibleRect;
+
+    private boolean isHorizontalScroll = true;
+
+    public boolean isHorizontalScroll() {
+        return isHorizontalScroll;
+    }
+
+    public void setHorizontalScroll(boolean isHorizontalScroll) {
+        if (this.isHorizontalScroll == isHorizontalScroll) {
+            return;
+        }
+        this.isHorizontalScroll = isHorizontalScroll;
+
+        if (currentRootType == WPViewConstant.PAGE_ROOT && pageRoot != null) {
+            LayoutKit.instance().layoutAllPage(pageRoot, zoom);
+            postInvalidate();
+        }
+    }
 }

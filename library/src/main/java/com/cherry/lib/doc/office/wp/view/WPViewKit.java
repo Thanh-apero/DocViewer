@@ -52,7 +52,7 @@ public class WPViewKit extends ViewKit
      * @param y  y值是100%的值
      * @return
      */
-    public PageView getPageView(IView root, int x, int y)
+    public PageView getPageView(IView root, int x, int y, boolean isHorizontal)
     {
         if (root == null)
         {
@@ -61,9 +61,16 @@ public class WPViewKit extends ViewKit
         IView view = root.getChildView();
         while (view != null)
         {
-            if (y > view.getY() && y < view.getY() + view.getHeight() + WPViewConstant.PAGE_SPACE)
-            {
-                break;
+            if (isHorizontal){
+                if (x > view.getX() && x < view.getX() + view.getWidth() + WPViewConstant.PAGE_SPACE)
+                {
+                    break;
+                }
+            } else {
+                if (y > view.getY() && y < view.getY() + view.getHeight() + WPViewConstant.PAGE_SPACE)
+                {
+                    break;
+                }
             }
             view = view.getNextView();
         }
