@@ -241,7 +241,6 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
             override fun openFileFinish() {
                 pageViewAdapter = PageViewAdapter(appControl).getAdapter()
                 setupRecyclerView()
-                pageViewAdapter?.setupAdapter(this@DocView.lifecycleScope)
                 mDocContainer?.postDelayed({
                     mDocContainer.removeAllViews()
                     mDocContainer.addView(
@@ -280,6 +279,11 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
 
             override fun getMovingOrientation(): Int {
                 return mMovingOrientation.orientation
+            }
+
+            override fun changePage() {
+                super.changePage()
+                pageViewAdapter?.changePage()
             }
 
         }

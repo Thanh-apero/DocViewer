@@ -626,6 +626,11 @@ public class PGControl extends AbstractControl
         pgView = null;
         mainControl = null;
     }
+
+    public Presentation getPgView()
+    {
+        return pgView;
+    }
     
     //
     private boolean isDispose;

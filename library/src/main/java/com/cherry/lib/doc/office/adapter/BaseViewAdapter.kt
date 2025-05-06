@@ -1,5 +1,6 @@
 package com.cherry.lib.doc.office.adapter
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
@@ -8,7 +9,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.cherry.lib.doc.R
 import com.cherry.lib.doc.databinding.ItemPageViewBinding
-import kotlinx.coroutines.CoroutineScope
 
 abstract class BaseViewAdapter() :
     ListAdapter<ItemPageView, BaseViewAdapter.PageViewHolder>(DIFF) {
@@ -25,14 +25,22 @@ abstract class BaseViewAdapter() :
         }
     }
 
+    open var totalPage: Int = 0
     open var currentPage: Int = -1
+        set(value) {
+            val oldValue = field
+            field = value
+            if (oldValue != value) {
+                notifyItemChanged(oldValue, PAYLOAD_PAGE_SELECTED)
+                notifyItemChanged(value, PAYLOAD_PAGE_SELECTED)
+                scrollToCurrentPage()
+            }
+        }
     open val thumbnailLoader: DocViewThumbnailLoader? = null
-    abstract fun setupAdapter(scope: CoroutineScope)
+    abstract fun changePage()
     private val loadingItems = HashSet<Int>()
-    private var itemOnClick: (ItemPageView) -> Unit = {}
-    fun setItemOnClickListener(listener: (ItemPageView) -> Unit) {
-        itemOnClick = listener
-    }
+    abstract fun itemOnClick(item: ItemPageView)
+    private var recyclerView: RecyclerView? = null
 
     class PageViewHolder(val binding: ItemPageViewBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -44,24 +52,37 @@ abstract class BaseViewAdapter() :
     }
 
     override fun onBindViewHolder(holder: PageViewHolder, position: Int) {
+        Log.d("DocViewThumbnailLoader", "onBindViewHolder: $position")
         val item = getItem(position)
-        holder.binding.pageNumber.text = item.pageNumber.toString()
-        holder.binding.pageView.setOnClickListener {
-            itemOnClick.invoke(item)
+        with(holder.binding) {
+            pageNumber.text = item.pageNumber.toString()
+            pageView.setOnClickListener {
+                itemOnClick(item)
+            }
+            root.strokeColor = ContextCompat.getColor(
+                holder.itemView.context,
+                if (currentPage == position) R.color.background_thumbnail_selected else R.color.background_thumbnail_unselect
+            )
+            pageNumber.backgroundTintList = ContextCompat.getColorStateList(
+                holder.itemView.context,
+                if (currentPage == position) R.color.background_thumbnail_selected else R.color.background_thumbnail_unselect
+            )
         }
-        holder.binding.root.strokeColor = ContextCompat.getColor(
-            holder.itemView.context,
-            if (currentPage == position) R.color.background_thumbnail_selected else R.color.background_thumbnail_unselect
-        )
         loadThumbnailForPosition(holder, position)
     }
 
     override fun onBindViewHolder(holder: PageViewHolder, position: Int, payloads: List<Any?>) {
         if (payloads.contains(PAYLOAD_PAGE_SELECTED)) {
-            holder.binding.root.strokeColor = ContextCompat.getColor(
-                holder.itemView.context,
-                if (currentPage == position) R.color.background_thumbnail_selected else R.color.background_thumbnail_unselect
-            )
+            with(holder.binding) {
+                root.strokeColor = ContextCompat.getColor(
+                    holder.itemView.context,
+                    if (currentPage == position) R.color.background_thumbnail_selected else R.color.background_thumbnail_unselect
+                )
+                pageNumber.backgroundTintList = ContextCompat.getColorStateList(
+                    holder.itemView.context,
+                    if (currentPage == position) R.color.background_thumbnail_selected else R.color.background_thumbnail_unselect
+                )
+            }
         } else {
             onBindViewHolder(holder, position)
         }
@@ -84,23 +105,36 @@ abstract class BaseViewAdapter() :
         }
 
         loadingItems.add(pageNumber)
+        with(holder.binding) {
+            pageView.setImageBitmap(null)
+            pageView.setBackgroundColor(0xFFEEEEEE.toInt())
+            loadingIndicator.visibility = ViewGroup.VISIBLE
+            thumbnailLoader?.loadThumbnail(pageNumber)?.let { bitmap ->
+                if (holder.adapterPosition == position) {
+                    pageView.setBackgroundColor(0x00000000)
+                    pageView.setImageBitmap(bitmap)
+                    loadingIndicator.visibility = ViewGroup.GONE
+                }
 
-        holder.binding.pageView.setImageBitmap(null)
-        holder.binding.pageView.setBackgroundColor(0xFFEEEEEE.toInt())
-        holder.binding.loadingIndicator.visibility = ViewGroup.VISIBLE
-        thumbnailLoader?.loadThumbnail(pageNumber)?.let { bitmap ->
-            if (holder.adapterPosition == position) {
-                holder.binding.pageView.setBackgroundColor(0x00000000)
-                holder.binding.pageView.setImageBitmap(bitmap)
-                holder.binding.loadingIndicator.visibility = ViewGroup.GONE
+                loadingItems.remove(pageNumber)
             }
-
-            loadingItems.remove(pageNumber)
         }
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
         super.onDetachedFromRecyclerView(recyclerView)
         thumbnailLoader?.clearCache()
+        this.recyclerView = null
+    }
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        this.recyclerView = recyclerView
+    }
+
+    private fun scrollToCurrentPage() {
+        if (currentPage >= 0) {
+            recyclerView?.scrollToPosition(currentPage)
+        }
     }
 }

@@ -3,11 +3,10 @@ package com.cherry.lib.doc.office.adapter
 import android.graphics.Bitmap
 import android.util.Log
 import android.util.LruCache
+import com.cherry.lib.doc.office.constant.EventConstant
 import com.cherry.lib.doc.office.pg.control.PGControl
 import com.cherry.lib.doc.office.system.IControl
 import com.cherry.lib.doc.office.wp.control.WPControl
-import com.cherry.lib.doc.office.wp.control.Word
-import com.cherry.lib.doc.office.constant.EventConstant
 
 class DocViewThumbnailLoader(private val iControl: IControl) {
     companion object {

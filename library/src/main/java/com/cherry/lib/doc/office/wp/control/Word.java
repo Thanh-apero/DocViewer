@@ -50,9 +50,10 @@ public class Word extends LinearLayout implements IWord {
     public interface PageListener {
         void onPageChange(int numberPage);
     }
+
     private PageListener pageListener;
 
-    public void setPageListener(PageListener pageListener){
+    public void setPageListener(PageListener pageListener) {
         this.pageListener = pageListener;
     }
 
@@ -760,7 +761,7 @@ public class Word extends LinearLayout implements IWord {
      *
      * @param index page index
      */
-    protected void showPage(int index, int direction) {
+    public void showPage(int index, int direction) {
         if (index < 0 || index >= getPageCount()
                 || getCurrentRootType() == WPViewConstant.NORMAL_ROOT) {
             return;

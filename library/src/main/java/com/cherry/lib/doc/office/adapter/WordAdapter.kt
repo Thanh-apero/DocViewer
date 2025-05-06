@@ -1,44 +1,26 @@
 package com.cherry.lib.doc.office.adapter
 
 import com.cherry.lib.doc.office.wp.control.WPControl
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
-class WordAdapter(private val word: WPControl): BaseViewAdapter() {
-    override var currentPage = -1
+class WordAdapter(private val word: WPControl) : BaseViewAdapter() {
     override val thumbnailLoader = DocViewThumbnailLoader(word)
 
-    init {
-        word.wordView.setPageListener { pageNumber ->
-            (pageNumber - 1).let {
-                if (currentPage != it) {
-                    val oldPage = currentPage
-                    currentPage = it
-                    notifyItemChanged(it, PAYLOAD_PAGE_SELECTED)
-                    if (oldPage >= 0) {
-                        notifyItemChanged(oldPage, PAYLOAD_PAGE_SELECTED)
-                    }
-                }
-            }
+    override fun changePage() {
+        val oldPage = currentPage
+        currentPage = word.currentViewIndex - 1
+        notifyItemChanged(currentPage, PAYLOAD_PAGE_SELECTED)
+        if (oldPage >= 0) {
+            notifyItemChanged(oldPage, PAYLOAD_PAGE_SELECTED)
+        }
+        val oldTotalPages = totalPage
+        totalPage = word.wordView.pageCount
+        if (oldTotalPages != totalPage) {
+            val listItem = List(totalPage) { ItemPageView(it + 1) }
+            submitList(listItem)
         }
     }
 
-    override fun setupAdapter(scope: CoroutineScope) {
-        scope.launch(Dispatchers.Main) {
-            var isFinished = false
-            while (!isFinished) {
-                try {
-                    isFinished = word.wordView.isFinishLayout
-                } catch (e: Exception) {
-                    isFinished = false
-                }
-                val totalPages = word.wordView.pageCount
-                val listItem = List(totalPages) { ItemPageView(it + 1) }
-                submitList(listItem)
-                delay(500)
-            }
-        }
+    override fun itemOnClick(item: ItemPageView) {
+        word.wordView.showPage(item.pageNumber - 1, -1)
     }
 }
