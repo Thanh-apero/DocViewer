@@ -115,33 +115,23 @@ public class APageListView extends AdapterView<Adapter>
      * @param oldw Old width of this view.
      * @param oldh Old height of this view.
      */
-    protected void onSizeChanged(int w, int h, int oldw, int oldh) 
-    {
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        
-        if (isConfigurationChanged)
-        {                    
-        	float fitZoom = getFitZoom();
-            if(zoom < fitZoom)
-            {
-            	setZoom(fitZoom, false);
-            	isInit = false;
-            	postDelayed(new Runnable()
-                {
-                    /**
-                     * 
-                     */ 
-                    public void run()
-                    {
-                    	isInit = true;
-                    	isResetLayout = true;
-                        requestLayout();
-                    }
-                }, 1);
-            	
-            	pageListViewListener.changeZoom();
-            }            
-        }
+        float fitZoom = getFitZoom();
+        setZoom(fitZoom, false);
+        isInit = false;
+        postDelayed(new Runnable() {
+            /**
+             *
+             */
+            public void run() {
+                isInit = true;
+                isResetLayout = true;
+                requestLayout();
+            }
+        }, 1);
+
+        pageListViewListener.changeZoom();
     }
     
     /**
@@ -894,17 +884,8 @@ public class APageListView extends AdapterView<Adapter>
         }
         
         float maxZoom = MainConstant.MAXZOOM / MainConstant.STANDARD_RATE;
-    	if (value == 0)
-        {
-    		if(!pageListViewListener.isIgnoreOriginalSize())
-            {
-    			return Math.min(Math.min(viewWidth / (float)rect.width(), viewHeight / (float)rect.height()), 1.0f);
-            }
-    		else
-    		{
-    			return Math.min(Math.min(viewWidth / (float)rect.width(), viewHeight / (float)rect.height()), maxZoom);
-    		}
-            
+        if (value == 0) {
+            return Math.min(Math.min(viewWidth / (float) rect.width(), viewHeight / (float) rect.height()), maxZoom);
         }
         else if (value == 1)
         {
