@@ -25,6 +25,7 @@ import com.cherry.lib.doc.office.system.IControl;
 import com.cherry.lib.doc.office.system.IFind;
 import com.cherry.lib.doc.office.system.IMainFrame;
 import com.cherry.lib.doc.office.system.SysKit;
+import com.cherry.lib.doc.office.system.ViewMode;
 
 import android.app.Activity;
 import android.app.Dialog;
@@ -553,7 +554,18 @@ public class PGControl extends AbstractControl
     {
         return pgView.getFind();
     }
-    
+
+    @Override
+    public void changeViewMode(ViewMode viewMode) {
+        pgView.changeViewMode(viewMode);
+    }
+
+    @Override
+    @Nullable
+    public ViewMode getViewMode() {
+        return pgView.getViewMode();
+    }
+
     /**
      * 
      */

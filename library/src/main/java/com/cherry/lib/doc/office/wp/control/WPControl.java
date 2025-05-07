@@ -23,6 +23,7 @@ import com.cherry.lib.doc.office.system.IControl;
 import com.cherry.lib.doc.office.system.IFind;
 import com.cherry.lib.doc.office.system.IMainFrame;
 import com.cherry.lib.doc.office.system.SysKit;
+import com.cherry.lib.doc.office.system.ViewMode;
 import com.cherry.lib.doc.office.wp.dialog.TXTEncodingDialog;
 
 import android.app.Activity;
@@ -538,7 +539,18 @@ public class WPControl extends AbstractControl
     {
         return wpView.getFind();
     }
-    
+
+    @Override
+    public void changeViewMode(ViewMode viewMode) {
+        wpView.changeModeView(viewMode);
+    }
+
+    @Override
+    @Nullable
+    public ViewMode getViewMode() {
+       return wpView.getViewMode();
+    }
+
     /**
      * 
      */

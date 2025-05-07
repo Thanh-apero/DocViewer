@@ -14,7 +14,6 @@ import com.cherry.lib.doc.office.res.ResKit;
 import com.cherry.lib.doc.office.system.IControl;
 import com.cherry.lib.doc.office.system.IMainFrame;
 import com.cherry.lib.doc.office.system.MainControl;
-import com.cherry.lib.doc.office.wp.control.Word;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -216,8 +215,6 @@ public abstract class IOffice implements IMainFrame {
      */
     public abstract String getAppName();
 
-    public abstract int getMovingOrientation();
-
     /**
      * 是否绘制页码
      */
@@ -237,9 +234,6 @@ public abstract class IOffice implements IMainFrame {
      *
      * @return WPViewConstant.PAGE_ROOT or WPViewConstant.NORMAL_ROOT
      */
-    public byte getWordDefaultView() {
-        return WPViewConstant.PAGE_ROOT;
-    }
 
     /**
      * normal view, changed after zoom bend, you need to re-layout
@@ -370,10 +364,6 @@ public abstract class IOffice implements IMainFrame {
      */
     public boolean isIgnoreOriginalSize() {
         return false;
-    }
-
-    public int getPageListViewMovingPosition() {
-        return getMovingOrientation();
     }
 
     /**

@@ -17,4 +17,10 @@
         app:dv_engine="internal"
         app:dv_quality="normal"/>
 
+    <Button
+        android:id="@+id/changeViewMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="change"/>
+
 </FrameLayout>

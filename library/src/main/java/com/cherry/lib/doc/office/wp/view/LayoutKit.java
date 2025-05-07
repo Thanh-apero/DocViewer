@@ -109,7 +109,7 @@ public class LayoutKit {
         int totalWidth = 0;
         int totalHeight = 0;
 
-        if (word.isHorizontalScroll()) {
+        if (word.getViewMode().isHorizontal()) {
             int maxHeight = 0;
             dy = Math.max(WPViewConstant.PAGE_SPACE, (word.getHeight() - (int) (pv.getHeight() * zoom)) / 2);
             while (pv != null) {

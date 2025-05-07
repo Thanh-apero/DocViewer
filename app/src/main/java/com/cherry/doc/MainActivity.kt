@@ -15,6 +15,7 @@ import android.view.View.OnClickListener
 import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import androidx.appcompat.app.AppCompatActivity
+import com.cherry.doc.databinding.ActivityMainBinding
 import com.cherry.doc.util.BasicSet
 import com.cherry.doc.util.DocUtil
 import com.cherry.doc.util.WordUtils
@@ -26,8 +27,6 @@ import com.cherry.permissions.lib.EasyPermissions
 import com.cherry.permissions.lib.EasyPermissions.hasPermissions
 import com.cherry.permissions.lib.annotations.AfterPermissionGranted
 import com.cherry.permissions.lib.dialogs.SettingsDialog
-import kotlinx.android.synthetic.main.activity_main.toolbar
-import kotlinx.android.synthetic.main.content_main.mRvDoc
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,10 +46,12 @@ class MainActivity : AppCompatActivity(),OnClickListener,OnItemClickListener,
 //    var url = "http://172.16.28.95:8080/data/testdocx.ll"
 
     var mDocAdapter: DocAdapter? = null
+    private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         initView()
         initData()
@@ -138,10 +139,10 @@ class MainActivity : AppCompatActivity(),OnClickListener,OnItemClickListener,
         }
     }
     fun initView() {
-        setSupportActionBar(toolbar)
+        setSupportActionBar(binding.toolbar)
 
         mDocAdapter = DocAdapter(this,this)
-        mRvDoc.adapter = mDocAdapter
+        binding.contentMain.root.adapter = mDocAdapter
     }
 
     fun initData() {

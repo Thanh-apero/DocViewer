@@ -32,8 +32,10 @@ import com.cherry.lib.doc.office.simpletext.model.IDocument;
 import com.cherry.lib.doc.office.system.IControl;
 import com.cherry.lib.doc.office.system.IFind;
 import com.cherry.lib.doc.office.system.SysKit;
+import com.cherry.lib.doc.office.system.ViewMode;
 import com.cherry.lib.doc.office.system.beans.CalloutView.CalloutView;
 import com.cherry.lib.doc.office.system.beans.CalloutView.IExportListener;
+import com.cherry.lib.doc.office.system.beans.pagelist.IPageListViewListener;
 
 import java.util.List;
 
@@ -1059,4 +1061,24 @@ public class Presentation extends FrameLayout implements IFind, IExportListener 
      */
     private PGPrintMode pgPrintMode;
     private CalloutView callouts;
+
+    public void changeViewMode(ViewMode viewMode) {
+        switch (viewMode) {
+            case VERTICAL_SNAP: {
+                pgPrintMode.setPageListViewMovingPosition(IPageListViewListener.Moving_Vertical);
+                break;
+            }
+            case HORIZONTAL_SNAP: {
+                pgPrintMode.setPageListViewMovingPosition(IPageListViewListener.Moving_Horizontal);
+                break;
+            }
+        }
+    }
+    public ViewMode getViewMode() {
+        if (pgPrintMode.getPageListViewMovingPosition() == IPageListViewListener.Moving_Vertical) {
+            return ViewMode.VERTICAL_SNAP;
+        } else {
+            return ViewMode.HORIZONTAL_SNAP;
+        }
+    }
 }

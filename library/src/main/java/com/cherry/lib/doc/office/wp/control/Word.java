@@ -17,6 +17,7 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.widget.LinearLayout;
 
@@ -38,7 +39,9 @@ import com.cherry.lib.doc.office.simpletext.view.IView;
 import com.cherry.lib.doc.office.system.IControl;
 import com.cherry.lib.doc.office.system.IDialogAction;
 import com.cherry.lib.doc.office.system.SysKit;
+import com.cherry.lib.doc.office.system.ViewMode;
 import com.cherry.lib.doc.office.system.beans.pagelist.APageListView;
+import com.cherry.lib.doc.office.system.beans.pagelist.IPageListViewListener;
 import com.cherry.lib.doc.office.wp.view.LayoutKit;
 import com.cherry.lib.doc.office.wp.view.NormalRoot;
 import com.cherry.lib.doc.office.wp.view.PageRoot;
@@ -72,7 +75,7 @@ public class Word extends LinearLayout implements IWord {
         super(context);
         this.control = control;
         this.doc = doc;
-        int defaultMode = control.getMainFrame().getWordDefaultView();
+        int defaultMode = currentRootType;
         setCurrentRootType(defaultMode);
         if (defaultMode == WPViewConstant.NORMAL_ROOT) {
             normalRoot = new NormalRoot(this);
@@ -541,7 +544,7 @@ public class Word extends LinearLayout implements IWord {
             return printWord.getCurrentPageNumber();
         }
         PageView pv = WPViewKit.instance().getPageView(pageRoot, (int) (getScrollX() / zoom),
-                (int) (getScrollY() / zoom) + getHeight() / 3, isHorizontalScroll);
+                (int) (getScrollY() / zoom) + getHeight() / 3, getViewMode().isHorizontal());
         if (pv == null) {
             return 1;
         }
@@ -562,7 +565,7 @@ public class Word extends LinearLayout implements IWord {
             return null;
         }
         PageView pv = WPViewKit.instance().getPageView(pageRoot, (int) (getScrollX() / zoom),
-                (int) (getScrollY() / zoom) + getHeight() / 5, isHorizontalScroll);
+                (int) (getScrollY() / zoom) + getHeight() / 5, getViewMode().isHorizontal());
         if (pv == null) {
             IAttributeSet attr = doc.getSection(0).getAttribute();
             int pageWidth = (int) (AttrManage.instance().getPageWidth(attr) * MainConstant.TWIPS_TO_PIXEL);
@@ -778,7 +781,7 @@ public class Word extends LinearLayout implements IWord {
         }
         IView view = pageRoot.getPageView(index);
         if (view != null) {
-            if (isHorizontalScroll){
+            if (viewMode.isHorizontal()) {
                 this.scrollTo((int) (view.getX() * zoom), getScrollY());
             } else {
                 this.scrollTo(getScrollX(), (int) (view.getY() * zoom));
@@ -1085,7 +1088,7 @@ public class Word extends LinearLayout implements IWord {
     //
     private boolean initFinish;
     // 当前显示的root类型
-    private int currentRootType;
+    private int currentRootType = WPViewConstant.PAGE_ROOT;
     //
     protected int mWidth;
     //
@@ -1121,21 +1124,57 @@ public class Word extends LinearLayout implements IWord {
     //
     private Rectangle visibleRect;
 
-    private boolean isHorizontalScroll = true;
+    private ViewMode viewMode = ViewMode.VERTICAL_CONTINUOUS;
 
-    public boolean isHorizontalScroll() {
-        return isHorizontalScroll;
+    public void changeModeView(ViewMode viewMode) {
+        changeRootType(viewMode);
+        switch (viewMode) {
+            case VERTICAL_SNAP: {
+                this.viewMode = ViewMode.VERTICAL_SNAP;
+                if (printWord != null) {
+                    printWord.setPageListViewMovingPosition(IPageListViewListener.Moving_Vertical);
+                }
+                break;
+            }
+            case VERTICAL_CONTINUOUS: {
+                this.viewMode = ViewMode.VERTICAL_CONTINUOUS;
+                if (currentRootType == WPViewConstant.PAGE_ROOT && pageRoot != null) {
+                    LayoutKit.instance().layoutAllPage(pageRoot, zoom);
+                    postInvalidate();
+                }
+                break;
+            }
+            case HORIZONTAL_SNAP: {
+                this.viewMode = ViewMode.HORIZONTAL_SNAP;
+                if (printWord != null) {
+                    printWord.setPageListViewMovingPosition(IPageListViewListener.Moving_Horizontal);
+                }
+                break;
+            }
+            case HORIZONTAL_CONTINUOUS: {
+                this.viewMode = ViewMode.HORIZONTAL_CONTINUOUS;
+                if (currentRootType == WPViewConstant.PAGE_ROOT && pageRoot != null) {
+                    LayoutKit.instance().layoutAllPage(pageRoot, zoom);
+                    postInvalidate();
+                }
+                break;
+            }
+        }
     }
 
-    public void setHorizontalScroll(boolean isHorizontalScroll) {
-        if (this.isHorizontalScroll == isHorizontalScroll) {
-            return;
-        }
-        this.isHorizontalScroll = isHorizontalScroll;
+    public ViewMode getViewMode() {
+        return viewMode;
+    }
 
-        if (currentRootType == WPViewConstant.PAGE_ROOT && pageRoot != null) {
-            LayoutKit.instance().layoutAllPage(pageRoot, zoom);
-            postInvalidate();
+    private void changeRootType(ViewMode viewMode) {
+        if (viewMode.isSnap()) {
+            if (currentRootType == WPViewConstant.PAGE_ROOT) {
+                switchView(WPViewConstant.PRINT_ROOT);
+            }
+        } else {
+            if (currentRootType == WPViewConstant.PRINT_ROOT) {
+                switchView(WPViewConstant.PAGE_ROOT);
+            }
         }
     }
 }

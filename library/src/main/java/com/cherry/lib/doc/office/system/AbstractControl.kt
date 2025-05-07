@@ -111,4 +111,9 @@ abstract class AbstractControl : IControl {
     override fun getApplicationType(): Int {
         return -1
     }
+
+    override fun changeViewMode(viewMode: ViewMode?) {}
+    override fun getViewMode(): ViewMode? {
+        return null
+    }
 }

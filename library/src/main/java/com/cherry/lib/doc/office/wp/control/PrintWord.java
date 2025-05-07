@@ -32,6 +32,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -55,6 +56,7 @@ import android.widget.FrameLayout;
  */
 public class PrintWord extends FrameLayout implements IPageListViewListener
 {
+    private int movingMode = IPageListViewListener.Moving_Horizontal;
     /**
      * 
      * @param context
@@ -499,11 +501,13 @@ public class PrintWord extends FrameLayout implements IPageListViewListener
     
     /**
      * page list view moving position
-     * @param position horizontal or vertical
      */
-    public int getPageListViewMovingPosition()
-    {
-    	return control.getMainFrame().getPageListViewMovingPosition();
+    public int getPageListViewMovingPosition(){
+        return movingMode;
+    }
+
+    public void setPageListViewMovingPosition(int movingMode){
+        this.movingMode = movingMode;
     }
     
     /**
@@ -530,7 +534,6 @@ public class PrintWord extends FrameLayout implements IPageListViewListener
      * @param       e2            MotionEvent instance
      * @param       velocityX     x axis velocity
      * @param       velocityY     y axis velocity  
-     * @param       eventNethodType  event method      
      *              @see TouchEventListener#EVENT_CLICK
      *              @see TouchEventListener#EVENT_DOUBLE_TAP
      *              @see TouchEventListener#EVENT_DOUBLE_TAP_EVENT
@@ -654,7 +657,6 @@ public class PrintWord extends FrameLayout implements IPageListViewListener
     /**
      * 绘制页信息
      * @param canvas
-     * @param zoom
      */
     private void drawPageNubmer(Canvas canvas)
     {
@@ -695,7 +697,6 @@ public class PrintWord extends FrameLayout implements IPageListViewListener
      *  set change page flag, Only when effectively the PageSize greater than ViewSize.
      *  (for PPT, word print mode, PDF)
      *  
-     *  @param b    = true, change page
      *              = false, don't change page
      */
     public boolean isChangePage()

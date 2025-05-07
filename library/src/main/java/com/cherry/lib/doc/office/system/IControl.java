@@ -71,6 +71,10 @@ public interface IControl
      * get find instance
      */
     public IFind getFind();
+
+    public void changeViewMode(ViewMode viewMode);
+
+    public ViewMode getViewMode();
     
     /**
      * 

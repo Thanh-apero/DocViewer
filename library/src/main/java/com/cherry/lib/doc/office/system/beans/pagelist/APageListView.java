@@ -976,7 +976,6 @@ public class APageListView extends AdapterView<Adapter>
     
     /**
      * 
-     * @param v
      */
     protected void postUnRepaint(final APageListItem view)
     {
@@ -996,7 +995,6 @@ public class APageListView extends AdapterView<Adapter>
 
     /**
      * 
-     * @param v
      */
     public void postRepaint(final APageListItem view)
     {
@@ -1015,7 +1013,6 @@ public class APageListView extends AdapterView<Adapter>
     
     /**
      * 
-     * @param i
      * @return
      */
     public APageListItem getCurrentPageView()
@@ -1038,7 +1035,6 @@ public class APageListView extends AdapterView<Adapter>
     
     /**
      * 
-     * @param i
      * @return
      */
     private APageListItem createPageView(int pageIndex)

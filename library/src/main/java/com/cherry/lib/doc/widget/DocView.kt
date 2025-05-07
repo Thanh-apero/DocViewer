@@ -25,16 +25,16 @@ import coil.load
 import com.blankj.utilcode.util.UriUtils
 import com.cherry.lib.doc.R
 import com.cherry.lib.doc.bean.DocEngine
-import com.cherry.lib.doc.bean.DocMovingOrientation
 import com.cherry.lib.doc.bean.DocSourceType
 import com.cherry.lib.doc.bean.FileType
 import com.cherry.lib.doc.databinding.DocViewBinding
-import com.cherry.lib.doc.interfaces.OnDownloadListener
 import com.cherry.lib.doc.interfaces.OnDocPageChangeListener
+import com.cherry.lib.doc.interfaces.OnDownloadListener
 import com.cherry.lib.doc.interfaces.OnWebLoadListener
 import com.cherry.lib.doc.office.IOffice
 import com.cherry.lib.doc.office.adapter.BaseViewAdapter
 import com.cherry.lib.doc.office.adapter.PageViewAdapter
+import com.cherry.lib.doc.office.system.IControl
 import com.cherry.lib.doc.pdf.PdfDownloader
 import com.cherry.lib.doc.pdf.PdfPageViewAdapter
 import com.cherry.lib.doc.pdf.PdfQuality
@@ -55,7 +55,6 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
     private var mPoiViewer: PoiViewer? = null
     private var pdfRendererCore: PdfRendererCore? = null
     private var pdfPageViewAdapter: PdfPageViewAdapter? = null
-    private var mMovingOrientation = DocMovingOrientation.HORIZONTAL
     private var quality = PdfQuality.NORMAL
     private var engine = DocEngine.INTERNAL
     private var showDivider = true
@@ -80,6 +79,7 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
     private var pageViewAdapter: BaseViewAdapter? = null
 
     private lateinit var binding: DocViewBinding
+    private var iControl: IControl? = null
 
     constructor(context: Context) : this(context, null)
     constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
@@ -92,9 +92,6 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
 
         val typedArray =
             context.obtainStyledAttributes(attrs, R.styleable.DocView, defStyle, 0)
-        val orientation =
-            typedArray.getInt(R.styleable.DocView_dv_moving_orientation, DocMovingOrientation.HORIZONTAL.orientation)
-        mMovingOrientation = DocMovingOrientation.values().first { it.orientation == orientation }
         val ratio =
             typedArray.getInt(R.styleable.DocView_dv_quality, PdfQuality.NORMAL.ratio)
         quality = PdfQuality.values().first { it.ratio == ratio }
@@ -241,6 +238,7 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
             override fun openFileFinish() {
                 pageViewAdapter = PageViewAdapter(appControl).getAdapter()
                 setupRecyclerView()
+                iControl = appControl
                 mDocContainer?.postDelayed({
                     mDocContainer.removeAllViews()
                     mDocContainer.addView(
@@ -275,10 +273,6 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
             }
 
             override fun fullScreen(fullscreen: Boolean) {
-            }
-
-            override fun getMovingOrientation(): Int {
-                return mMovingOrientation.orientation
             }
 
             override fun changePage() {
@@ -399,5 +393,9 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
     private fun setupRecyclerView(){
         binding.rvPageView.adapter = pageViewAdapter
         binding.rvPageView.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
+    }
+
+    fun getControl(): IControl?{
+        return iControl
     }
 }

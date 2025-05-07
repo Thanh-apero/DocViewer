@@ -54,25 +54,41 @@ dependencies {
     implementation("io.coil-kt:coil:1.4.0")
 
     implementation 'org.apache.poi:poi-scratchpad:3.17'
-    // read file
     implementation 'commons-io:commons-io:2.0.1'
 
-    // AndroidUtilCode工具类：https://github.com/Blankj/AndroidUtilCode
     implementation('com.blankj:utilcodex:1.31.1')
-    // 文件编码判断：https://mvnrepository.com/artifact/com.googlecode.juniversalchardet/juniversalchardet
     implementation fileTree(include: ['*.jar', '*.aar'], dir: 'libs')
-    // implementation 'com.googlecode.juniversalchardet:juniversalchardet:1.0.3' //这种方式打成aar包会丢失该引用
 
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                from components.release
-                groupId = 'com.github.Victor2018' //groupId 随便取
-                artifactId = 'cherry'  //artifactId 随便取
-                version = '1.0.0'
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = "apero-inhouse"
+            artifactId = "doc-reader"
+            version = "1.0.0"
+            artifact("${project.buildDir}/outputs/aar/library-release.aar")
+            pom.withXml {
+                def dependenciesNode = asNode().dependencies?.first() ?: asNode().appendNode('dependencies')
+                configurations.implementation.dependencies.each {
+                    if (it.name != "unspecified") {
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', it.group)
+                        dependencyNode.appendNode('artifactId', it.name)
+                        if (it.version) {
+                            dependencyNode.appendNode('version', it.version)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            url = uri("https://artifactory.apero.vn/artifactory/gradle-release/")
+            credentials {
+                username = "deployer"
+                password = "apero@123"
             }
         }
     }

@@ -127,7 +127,6 @@ public interface IMainFrame
      * @param       yValue        eventNethodType is ON_SCROLL, this is value distanceY
      *                             eventNethodType is ON_FLING, this is value velocityY
      *                             eventNethodType is other type, this is value -1  
-     * @param       eventNethodType  event method      
      *              @see IMainFrame#ON_CLICK
      *              @see IMainFrame#ON_DOUBLE_TAP
      *              @see IMainFrame#ON_DOUBLE_TAP_EVENT
@@ -217,8 +216,6 @@ public interface IMainFrame
      *          1，normal view;
      *           
      */
-    public byte getWordDefaultView();
-    
     /**
      * get Internationalization resource
      * 
@@ -268,7 +265,6 @@ public interface IMainFrame
      *  set change page flag, Only when effectively the PageSize greater than ViewSize.
      *  (for PPT, word print mode, PDF)
      *  
-     *  @param b    = true, change page
      *              = false, don't change page
      */
     public boolean isChangePage();
@@ -324,10 +320,7 @@ public interface IMainFrame
     
     /**
      * page list view moving position
-     * @param position horizontal or vertical
      */
-    public int getPageListViewMovingPosition();
-    
     /**
      * 
      */
