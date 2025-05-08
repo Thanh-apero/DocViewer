@@ -25,6 +25,7 @@ import com.cherry.lib.doc.office.fc.ddf.EscherProperties;
 import com.cherry.lib.doc.office.fc.hslf.exceptions.HSLFException;
 import com.cherry.lib.doc.office.fc.hslf.record.*;
 import com.cherry.lib.doc.office.fc.hslf.usermodel.SlideShow;
+import com.cherry.lib.doc.office.fc.hslf.record.Record;
 
 
 /**

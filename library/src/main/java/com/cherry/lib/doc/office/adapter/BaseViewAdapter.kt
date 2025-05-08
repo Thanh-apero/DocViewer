@@ -59,9 +59,9 @@ abstract class BaseViewAdapter() :
             pageView.setOnClickListener {
                 itemOnClick(item)
             }
-            root.strokeColor = ContextCompat.getColor(
+            root.background = ContextCompat.getDrawable(
                 holder.itemView.context,
-                if (currentPage == position) R.color.background_thumbnail_selected else R.color.background_thumbnail_unselect
+                if (currentPage == position) R.drawable.card_background_selected else R.drawable.card_background
             )
             pageNumber.backgroundTintList = ContextCompat.getColorStateList(
                 holder.itemView.context,
@@ -74,9 +74,9 @@ abstract class BaseViewAdapter() :
     override fun onBindViewHolder(holder: PageViewHolder, position: Int, payloads: List<Any?>) {
         if (payloads.contains(PAYLOAD_PAGE_SELECTED)) {
             with(holder.binding) {
-                root.strokeColor = ContextCompat.getColor(
+                root.background = ContextCompat.getDrawable(
                     holder.itemView.context,
-                    if (currentPage == position) R.color.background_thumbnail_selected else R.color.background_thumbnail_unselect
+                    if (currentPage == position) R.drawable.card_background_selected else R.drawable.card_background
                 )
                 pageNumber.backgroundTintList = ContextCompat.getColorStateList(
                     holder.itemView.context,

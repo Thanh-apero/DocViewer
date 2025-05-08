@@ -133,7 +133,7 @@ public final class HWPFDocument extends HWPFDocumentCore
 
     /** Holds the fields */
     protected Fields _fields;
-    
+
     /**
      * textbox
      */
@@ -169,7 +169,6 @@ public final class HWPFDocument extends HWPFDocumentCore
      *  in a POIFSFileSystem, probably not the default.
      * Used typically to open embeded documents.
      *
-     * @param directory The DirectoryNode that contains the Word document.
      * @throws IOException If there is an unexpected IOException from the passed
      *         in POIFSFileSystem.
      */
@@ -189,7 +188,7 @@ public final class HWPFDocument extends HWPFDocumentCore
            if (_fib.getNFib() == 0)
            {
                throw new NullPointerException();
-           }           
+           }
             throw new OldWordFileFormatException(
                 "The document is too old - Word 95 or older. Try HWPFOldDocument instead?");
         }
@@ -357,7 +356,7 @@ public final class HWPFDocument extends HWPFDocumentCore
 
         _fieldsTables = new FieldsTables(_tableStream, _fib);
         _fields = new FieldsImpl(_fieldsTables);
-        
+
         //textbox
         txbxBkd = new PlcfTxbxBkd(_tableStream, _fib.getFcPlcfTxbxBkd(), _fib.getLcbPlcfTxbxBkd());
     }
@@ -445,7 +444,7 @@ public final class HWPFDocument extends HWPFDocumentCore
 
     /**
      * Returns the {@link Range} which covers all the Footnotes.
-     * 
+     *
      * @return the {@link Range} which covers all the Footnotes.
      */
     public Range getFootnoteRange()
@@ -455,7 +454,7 @@ public final class HWPFDocument extends HWPFDocumentCore
 
     /**
      * Returns the {@link Range} which covers all endnotes.
-     * 
+     *
      * @return the {@link Range} which covers all endnotes.
      */
     public Range getEndnoteRange()
@@ -465,7 +464,7 @@ public final class HWPFDocument extends HWPFDocumentCore
 
     /**
      * Returns the {@link Range} which covers all annotations.
-     * 
+     *
      * @return the {@link Range} which covers all annotations.
      */
     public Range getCommentsRange()
@@ -475,7 +474,7 @@ public final class HWPFDocument extends HWPFDocumentCore
 
     /**
      * Returns the {@link Range} which covers all textboxes.
-     * 
+     *
      * @return the {@link Range} which covers all textboxes.
      */
     public Range getMainTextboxRange()
@@ -597,7 +596,7 @@ public final class HWPFDocument extends HWPFDocumentCore
 
     /**
      * Returns user-friendly interface to access document {@link Field}s
-     * 
+     *
      * @return user-friendly interface to access document {@link Field}s
      */
     public Fields getFields()
@@ -631,12 +630,12 @@ public final class HWPFDocument extends HWPFDocumentCore
         Range r = new Range(start, start + length, this);
         r.delete();
     }
-    
+
     public int getTextboxStart(int txbx)
     {
     	return txbxBkd.getCharPosition(txbx);
     }
-    
+
     public int getTextboxEnd(int txbx)
     {
     	return txbxBkd.getCharPosition(txbx + 1);

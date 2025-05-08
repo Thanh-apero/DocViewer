@@ -743,7 +743,12 @@ class PinchImageView: AppCompatImageView {
      * 在onTouchEvent末尾被执行.
      */
     private val mGestureDetector = GestureDetector(this@PinchImageView.getContext(), object : SimpleOnGestureListener() {
-        override fun onFling(e1: MotionEvent, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+        override fun onFling(
+            e1: MotionEvent?,
+            e2: MotionEvent,
+            velocityX: Float,
+            velocityY: Float
+        ): Boolean {
             //只有在单指模式结束之后才允许执行fling
             if (mPinchMode == PINCH_MODE_FREE && !(mScaleAnimator != null && mScaleAnimator!!.isRunning)) {
                 fling(velocityX, velocityY)
