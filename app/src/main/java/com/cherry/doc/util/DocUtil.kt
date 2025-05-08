@@ -132,13 +132,13 @@ object DocUtil {
         }
 
 
+        docList.reverse()
         docGroupList.add(DocGroupInfo("DOC & DOCX",docList))
         docGroupList.add(DocGroupInfo("XLS & XLSX",excelList))
         docGroupList.add(DocGroupInfo("PPT & PPTX",pptList))
         docGroupList.add(DocGroupInfo("PDF",pdfList))
         docGroupList.add(DocGroupInfo("TXT",txtList))
         docGroupList.add(DocGroupInfo("IMAGE",imageList))
-
         return docGroupList
     }
 

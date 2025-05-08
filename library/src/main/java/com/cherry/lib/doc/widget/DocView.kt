@@ -34,9 +34,10 @@ import com.cherry.lib.doc.interfaces.OnWebLoadListener
 import com.cherry.lib.doc.office.IOffice
 import com.cherry.lib.doc.office.adapter.BaseViewAdapter
 import com.cherry.lib.doc.office.adapter.PageViewAdapter
+import com.cherry.lib.doc.office.pg.control.PGControl
 import com.cherry.lib.doc.office.system.IControl
+import com.cherry.lib.doc.office.wp.control.WPControl
 import com.cherry.lib.doc.pdf.PdfDownloader
-import com.cherry.lib.doc.pdf.PdfPageViewAdapter
 import com.cherry.lib.doc.pdf.PdfQuality
 import com.cherry.lib.doc.pdf.PdfRendererCore
 import com.cherry.lib.doc.util.Constant
@@ -54,7 +55,6 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
     var lifecycleScope: LifecycleCoroutineScope = (context as AppCompatActivity).lifecycleScope
     private var mPoiViewer: PoiViewer? = null
     private var pdfRendererCore: PdfRendererCore? = null
-    private var pdfPageViewAdapter: PdfPageViewAdapter? = null
     private var quality = PdfQuality.NORMAL
     private var engine = DocEngine.INTERNAL
     private var showDivider = true
@@ -236,8 +236,7 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
             }
 
             override fun openFileFinish() {
-                pageViewAdapter = PageViewAdapter(appControl).getAdapter()
-                setupRecyclerView()
+                setupAdapter(appControl)
                 iControl = appControl
                 mDocContainer?.postDelayed({
                     mDocContainer.removeAllViews()
@@ -393,6 +392,13 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
     private fun setupRecyclerView(){
         binding.rvPageView.adapter = pageViewAdapter
         binding.rvPageView.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
+    }
+
+    fun setupAdapter(appControl: IControl){
+        if (appControl is WPControl || appControl is PGControl){
+            pageViewAdapter = PageViewAdapter(appControl).getAdapter()
+            setupRecyclerView()
+        }
     }
 
     fun getControl(): IControl?{

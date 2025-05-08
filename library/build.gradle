@@ -1,7 +1,6 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
-    id 'kotlin-android-extensions'
     id 'maven-publish'
 }
 
@@ -66,7 +65,7 @@ publishing {
         maven(MavenPublication) {
             groupId = "apero-inhouse"
             artifactId = "doc-reader"
-            version = "1.0.0"
+            version = "1.0.0-alpha01"
             artifact("${project.buildDir}/outputs/aar/library-release.aar")
             pom.withXml {
                 def dependenciesNode = asNode().dependencies?.first() ?: asNode().appendNode('dependencies')

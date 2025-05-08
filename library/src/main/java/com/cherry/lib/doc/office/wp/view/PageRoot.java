@@ -101,8 +101,6 @@ public class PageRoot extends AbstractView implements IRoot
     /**
      * 
      * @param canvas
-     * @param x
-     * @param y
      * @param zoom
      */
     public synchronized void draw(Canvas canvas, int originX, int originY, float zoom)

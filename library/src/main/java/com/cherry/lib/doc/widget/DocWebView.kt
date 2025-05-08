@@ -13,8 +13,8 @@ import android.view.LayoutInflater
 import android.webkit.*
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.cherry.lib.doc.R
+import com.cherry.lib.doc.databinding.DocWebViewBinding
 import com.cherry.lib.doc.interfaces.OnWebLoadListener
-import kotlinx.android.synthetic.main.doc_web_view.view.*
 
 /*
  * -----------------------------------------------------------------
@@ -26,80 +26,78 @@ import kotlinx.android.synthetic.main.doc_web_view.view.*
  * Description: 
  * -----------------------------------------------------------------
  */
-
 class DocWebView : ConstraintLayout, DownloadListener {
     val TAG = "DocWebView"
     var isLastLoadSuccess = false//是否成功加载完成过web，成功过后的网络异常 不改变web
     var isError = false
     var openLinkBySysBrowser = false//是否使用系统浏览器打开http链接
     var mOnWebLoadListener: OnWebLoadListener? = null
+    
+    private val binding: DocWebViewBinding
 
     constructor(context: Context) : this(context, null)
     constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
     constructor(context: Context, attrs: AttributeSet?, defStyle: Int) : super(context, attrs, defStyle) {
+        binding = DocWebViewBinding.inflate(LayoutInflater.from(context), this, true)
         initView()
     }
 
     fun initView() {
-        LayoutInflater.from(context).inflate(R.layout.doc_web_view, this, true)
-        mDocView.webChromeClient = DocWebChromeClient()
-        mDocView.webViewClient = DocWebViewClient()
+        binding.mDocView.webChromeClient = DocWebChromeClient()
+        binding.mDocView.webViewClient = DocWebViewClient()
         //设置可以支持缩放
-        mDocView.settings.setSupportZoom(true)
+        binding.mDocView.settings.setSupportZoom(true)
         //设置出现缩放工具
-        mDocView.settings.builtInZoomControls = true
+        binding.mDocView.settings.builtInZoomControls = true
         //设定缩放控件隐藏
-        mDocView.settings.displayZoomControls = true
+        binding.mDocView.settings.displayZoomControls = true
         //设置可在大视野范围内上下左右拖动，并且可以任意比例缩放
-        mDocView.settings.useWideViewPort = true
+        binding.mDocView.settings.useWideViewPort = true
         //设置默认加载的可视范围是大视野范围
-        mDocView.settings.loadWithOverviewMode = true
+        binding.mDocView.settings.loadWithOverviewMode = true
         //自适应屏幕 SINGLE_COLUMN：把所有内容放大到webview等宽的一列中 NORMAL：正常显示不做任何渲染。NARROW_COLUMNS：可能的话让所有列的宽度不超过屏幕宽度
-        mDocView.settings.layoutAlgorithm = WebSettings.LayoutAlgorithm.SINGLE_COLUMN
+        binding.mDocView.settings.layoutAlgorithm = WebSettings.LayoutAlgorithm.SINGLE_COLUMN
 
-        mDocView.settings.javaScriptEnabled = true
-        mDocView.settings.domStorageEnabled = true
-        mDocView.settings.allowFileAccess = true
-        mDocView.settings.allowFileAccessFromFileURLs = true
-        mDocView.settings.allowUniversalAccessFromFileURLs = true
-        mDocView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
+        binding.mDocView.settings.javaScriptEnabled = true
+        binding.mDocView.settings.domStorageEnabled = true
+        binding.mDocView.settings.allowFileAccess = true
+        binding.mDocView.settings.allowFileAccessFromFileURLs = true
+        binding.mDocView.settings.allowUniversalAccessFromFileURLs = true
+        binding.mDocView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
 
-        mDocView.setDownloadListener(this)
+        binding.mDocView.setDownloadListener(this)
     }
 
     private fun setProgress(newProgress: Int) {
         mOnWebLoadListener?.OnWebLoadProgress(newProgress)
     }
 
-    /**
-     * 千万不要更改这个 "SSDJsBirdge"  注意！！！！！
-     */
     @SuppressLint("JavascriptInterface")
     fun addJavascriptInterface(jsInterface: Any) {
-        mDocView.addJavascriptInterface(jsInterface, "SSDJsBirdge")
+        binding.mDocView.addJavascriptInterface(jsInterface, "SSDJsBirdge")
     }
 
     fun reload() {
         isError = false
-        mDocView.reload()
+        binding.mDocView.reload()
     }
 
     fun loadUrl(url: String) {
         isError = false
         try {
-            mDocView.loadUrl(url)
+            binding.mDocView.loadUrl(url)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     fun loadData(htmlData: String) {
-        mDocView.loadData(htmlData, "text/html", "utf-8")
+        binding.mDocView.loadData(htmlData, "text/html", "utf-8")
     }
 
     fun loadData(htmlData: String, secondLinkBySysBrowser: Boolean) {
         openLinkBySysBrowser = secondLinkBySysBrowser
-        mDocView.loadData(htmlData, "text/html", "utf-8")
+        binding.mDocView.loadData(htmlData, "text/html", "utf-8")
     }
 
     fun downloadFile(url: String?, contentDisposition: String?, mimeType: String?) {
@@ -121,9 +119,10 @@ class DocWebView : ConstraintLayout, DownloadListener {
         val fileName = URLUtil.guessFileName(url, contentDisposition, mimeType)
         Log.e(TAG, "downloadFile()-fileName = $fileName")
         request.setDestinationInExternalPublicDir(Environment.getExternalStorageDirectory().toString() + "/Download/", fileName)
-        val downloadManager = mDocView.context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val downloadManager = binding.mDocView.context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         // 添加一个下载任务
         val downloadId = downloadManager.enqueue(request)
+
     }
 
     override fun onDownloadStart(
@@ -137,23 +136,22 @@ class DocWebView : ConstraintLayout, DownloadListener {
         val intent = Intent(Intent.ACTION_VIEW)
         intent.data = Uri.parse(url)
         context.startActivity(intent)
-//        downloadFile(url,contentDisposition,mimeType)
     }
 
     fun canGoBack(): Boolean {
-        val canGoBack = mDocView.canGoBack()
+        val canGoBack = binding.mDocView.canGoBack()
         if (canGoBack) {
-            mDocView.goBack()
+            binding.mDocView.goBack()
         }
         return canGoBack
     }
 
     fun onPause() {
-        mDocView.pauseTimers()
+        binding.mDocView.pauseTimers()
     }
 
     fun onResume() {
-        mDocView.resumeTimers()
+        binding.mDocView.resumeTimers()
     }
 
     /**
@@ -161,12 +159,12 @@ class DocWebView : ConstraintLayout, DownloadListener {
      */
     fun onDestroy() {
         try {
-            mDocView.clearHistory();
-            mDocView.clearCache(true)
-            mDocView.loadUrl("about:blank") // clearView() should be changed to loadUrl("about:blank"), since clearView() is deprecated now
-            mDocView.freeMemory()
-            mDocView.pauseTimers()
-            mDocView.destroy() // Note that mWebView.destroy() and mWebView = null do the exact same thing
+            binding.mDocView.clearHistory()
+            binding.mDocView.clearCache(true)
+            binding.mDocView.loadUrl("about:blank") // clearView() should be changed to loadUrl("about:blank"), since clearView() is deprecated now
+            binding.mDocView.freeMemory()
+            binding.mDocView.pauseTimers()
+            binding.mDocView.destroy() // Note that mWebView.destroy() and mWebView = null do the exact same thing
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -177,6 +175,7 @@ class DocWebView : ConstraintLayout, DownloadListener {
             //防止加载html白屏(针对播放视频)
             setBackgroundColor(Color.BLACK)
         }
+
     }
 
     override fun onDetachedFromWindow() {
