@@ -387,6 +387,7 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
         mPoiViewer?.recycle()
         closePdfRender()
         mOnDocPageChangeListener = null
+        iControl?.dispose()
     }
 
     private fun setupRecyclerView(){
