@@ -3905,7 +3905,12 @@ public class DOCXReader extends AbstractReader {
         if (temp != null) {
             val = temp.attributeValue("val");
             if (val != null && val.length() > 0) {
-                AttrManage.instance().setParaStyleID(attr, styleStrID.get(val));
+                Integer styleIDValue = styleStrID.get(val);
+                if (styleIDValue != null) {
+                    AttrManage.instance().setParaStyleID(attr, styleIDValue.intValue());
+                } else {
+                    android.util.Log.w("DOCXReader", "Style ID not found for key: " + val + ". Skipping setParaStyleID for this run.");
+                }
             }
         }
         // highlight

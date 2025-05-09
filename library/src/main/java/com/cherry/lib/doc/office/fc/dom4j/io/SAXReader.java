@@ -7,6 +7,8 @@
 
 package com.cherry.lib.doc.office.fc.dom4j.io;
 
+import android.util.Log;
+
 import androidx.annotation.Keep;
 
 import java.io.File;
@@ -189,12 +191,12 @@ public class SAXReader
      * possibility of breaking the standard behaviour. An alternative to calling
      * this method is to correctly configure an XMLReader object instance and
      * call the {@link #setXMLReader(XMLReader)}method
-     * 
+     *
      * @param name
      *            is the SAX property name
      * @param value
      *            is the value of the SAX property
-     * 
+     *
      * @throws SAXException
      *             if the XMLReader could not be created or the property could
      *             not be changed.
@@ -210,12 +212,12 @@ public class SAXReader
      * has the possibility of breaking the standard behaviour. An alternative to
      * calling this method is to correctly configure an XMLReader object
      * instance and call the {@link #setXMLReader(XMLReader)}method
-     * 
+     *
      * @param name
      *            is the SAX feature name
      * @param value
      *            is the value of the SAX feature
-     * 
+     *
      * @throws SAXException
      *             if the XMLReader could not be created or the feature could
      *             not be changed.
@@ -229,12 +231,12 @@ public class SAXReader
      * <p>
      * Reads a Document from the given <code>File</code>
      * </p>
-     * 
+     *
      * @param file
      *            is the <code>File</code> to read from.
-     * 
+     *
      * @return the newly created Document instance
-     * 
+     *
      * @throws DocumentException
      *             if an error occurs during parsing.
      */
@@ -285,12 +287,12 @@ public class SAXReader
      * <p>
      * Reads a Document from the given <code>URL</code> using SAX
      * </p>
-     * 
+     *
      * @param url
      *            <code>URL</code> to read from.
-     * 
+     *
      * @return the newly created Document instance
-     * 
+     *
      * @throws DocumentException
      *             if an error occurs during parsing.
      */
@@ -311,7 +313,7 @@ public class SAXReader
      * <p>
      * Reads a Document from the given URL or filename using SAX.
      * </p>
-     * 
+     *
      * <p>
      * If the systemId contains a <code>':'</code> character then it is
      * assumed to be a URL otherwise its assumed to be a file name. If you want
@@ -319,12 +321,12 @@ public class SAXReader
      * either a {@link URL}or a {@link File}instance instead of a {@link
      * String} to denote the source of the document.
      * </p>
-     * 
+     *
      * @param systemId
      *            is a URL for a document or a file name.
-     * 
+     *
      * @return the newly created Document instance
-     * 
+     *
      * @throws DocumentException
      *             if an error occurs during parsing.
      */
@@ -343,12 +345,12 @@ public class SAXReader
      * <p>
      * Reads a Document from the given stream using SAX
      * </p>
-     * 
+     *
      * @param in
      *            <code>InputStream</code> to read from.
-     * 
+     *
      * @return the newly created Document instance
-     * 
+     *
      * @throws DocumentException
      *             if an error occurs during parsing.
      */
@@ -367,12 +369,12 @@ public class SAXReader
      * <p>
      * Reads a Document from the given <code>Reader</code> using SAX
      * </p>
-     * 
+     *
      * @param reader
      *            is the reader for the input
-     * 
+     *
      * @return the newly created Document instance
-     * 
+     *
      * @throws DocumentException
      *             if an error occurs during parsing.
      */
@@ -391,14 +393,14 @@ public class SAXReader
      * <p>
      * Reads a Document from the given stream using SAX
      * </p>
-     * 
+     *
      * @param in
      *            <code>InputStream</code> to read from.
      * @param systemId
      *            is the URI for the input
-     * 
+     *
      * @return the newly created Document instance
-     * 
+     *
      * @throws DocumentException
      *             if an error occurs during parsing.
      */
@@ -418,14 +420,14 @@ public class SAXReader
      * <p>
      * Reads a Document from the given <code>Reader</code> using SAX
      * </p>
-     * 
+     *
      * @param reader
      *            is the reader for the input
      * @param systemId
      *            is the URI for the input
-     * 
+     *
      * @return the newly created Document instance
-     * 
+     *
      * @throws DocumentException
      *             if an error occurs during parsing.
      */
@@ -445,12 +447,12 @@ public class SAXReader
      * <p>
      * Reads a Document from the given <code>InputSource</code> using SAX
      * </p>
-     * 
+     *
      * @param in
      *            <code>InputSource</code> to read from.
-     * 
+     *
      * @return the newly created Document instance
-     * 
+     *
      * @throws DocumentException
      *             if an error occurs during parsing.
      */
@@ -458,6 +460,7 @@ public class SAXReader
     {
         try
         {
+            Log.d("bbbbbbb","Error reading SAX Input Source1: " + in);
             XMLReader reader = getXMLReader();
 
             reader = installXMLFilter(reader);
@@ -494,6 +497,7 @@ public class SAXReader
         }
         catch(Exception e)
         {
+            Log.d("bbbbbbb","Error reading SAX Input Source: " + e);
             e.printStackTrace();
             if (e instanceof SAXParseException)
             {
@@ -523,7 +527,7 @@ public class SAXReader
 
     /**
      * DOCUMENT ME!
-     * 
+     *
      * @return the validation mode, true if validating will be done otherwise
      *         false.
      */
@@ -534,7 +538,7 @@ public class SAXReader
 
     /**
      * Sets the validation mode.
-     * 
+     *
      * @param validation
      *            indicates whether or not validation should occur.
      */
@@ -545,7 +549,7 @@ public class SAXReader
 
     /**
      * DOCUMENT ME!
-     * 
+     *
      * @return whether internal DTD declarations should be expanded into the
      *         DocumentType object or not.
      */
@@ -557,7 +561,7 @@ public class SAXReader
     /**
      * Sets whether internal DTD declarations should be expanded into the
      * DocumentType object or not.
-     * 
+     *
      * @param include
      *            whether or not DTD declarations should be expanded and
      *            included into the DocumentType object.
@@ -569,7 +573,7 @@ public class SAXReader
 
     /**
      * DOCUMENT ME!
-     * 
+     *
      * @return whether external DTD declarations should be expanded into the
      *         DocumentType object or not.
      */
@@ -581,7 +585,7 @@ public class SAXReader
     /**
      * Sets whether DTD external declarations should be expanded into the
      * DocumentType object or not.
-     * 
+     *
      * @param include
      *            whether or not DTD declarations should be expanded and
      *            included into the DocumentType object.
@@ -594,7 +598,7 @@ public class SAXReader
     /**
      * Sets whether String interning is enabled or disabled for element &
      * attribute names and namespace URIs. This proprety is enabled by default.
-     * 
+     *
      * @return DOCUMENT ME!
      */
     public boolean isStringInternEnabled()
@@ -605,7 +609,7 @@ public class SAXReader
     /**
      * Sets whether String interning is enabled or disabled for element &
      * attribute names and namespace URIs
-     * 
+     *
      * @param stringInternEnabled
      *            DOCUMENT ME!
      */
@@ -616,7 +620,7 @@ public class SAXReader
 
     /**
      * Returns whether adjacent text nodes should be merged together.
-     * 
+     *
      * @return Value of property mergeAdjacentText.
      */
     public boolean isMergeAdjacentText()
@@ -627,7 +631,7 @@ public class SAXReader
     /**
      * Sets whether or not adjacent text nodes should be merged together when
      * parsing.
-     * 
+     *
      * @param mergeAdjacentText
      *            New value of property mergeAdjacentText.
      */
@@ -639,7 +643,7 @@ public class SAXReader
     /**
      * Sets whether whitespace between element start and end tags should be
      * ignored
-     * 
+     *
      * @return Value of property stripWhitespaceText.
      */
     public boolean isStripWhitespaceText()
@@ -650,7 +654,7 @@ public class SAXReader
     /**
      * Sets whether whitespace between element start and end tags should be
      * ignored.
-     * 
+     *
      * @param stripWhitespaceText
      *            New value of property stripWhitespaceText.
      */
@@ -661,7 +665,7 @@ public class SAXReader
 
     /**
      * Returns whether we should ignore comments or not.
-     * 
+     *
      * @return boolean
      */
     public boolean isIgnoreComments()
@@ -671,7 +675,7 @@ public class SAXReader
 
     /**
      * Sets whether we should ignore comments or not.
-     * 
+     *
      * @param ignoreComments
      *            whether we should ignore comments or not.
      */
@@ -682,7 +686,7 @@ public class SAXReader
 
     /**
      * DOCUMENT ME!
-     * 
+     *
      * @return the <code>DocumentFactory</code> used to create document
      *         objects
      */
@@ -703,7 +707,7 @@ public class SAXReader
      * to be implemented easily using a custom derivation of
      * {@link DocumentFactory}
      * </p>
-     * 
+     *
      * @param documentFactory
      *            <code>DocumentFactory</code> used to create DOM4J objects
      */
@@ -714,7 +718,7 @@ public class SAXReader
 
     /**
      * DOCUMENT ME!
-     * 
+     *
      * @return the <code>ErrorHandler</code> used by SAX
      */
     public ErrorHandler getErrorHandler()
@@ -725,7 +729,7 @@ public class SAXReader
     /**
      * Sets the <code>ErrorHandler</code> used by the SAX
      * <code>XMLReader</code>.
-     * 
+     *
      * @param errorHandler
      *            is the <code>ErrorHandler</code> used by SAX
      */
@@ -736,7 +740,7 @@ public class SAXReader
 
     /**
      * Returns the current entity resolver used to resolve entities
-     * 
+     *
      * @return DOCUMENT ME!
      */
     public EntityResolver getEntityResolver()
@@ -746,7 +750,7 @@ public class SAXReader
 
     /**
      * Sets the entity resolver used to resolve entities.
-     * 
+     *
      * @param entityResolver
      *            DOCUMENT ME!
      */
@@ -757,9 +761,9 @@ public class SAXReader
 
     /**
      * DOCUMENT ME!
-     * 
+     *
      * @return the <code>XMLReader</code> used to parse SAX events
-     * 
+     *
      * @throws SAXException
      *             DOCUMENT ME!
      */
@@ -775,7 +779,7 @@ public class SAXReader
 
     /**
      * Sets the <code>XMLReader</code> used to parse SAX events
-     * 
+     *
      * @param reader
      *            is the <code>XMLReader</code> to parse SAX events
      */
@@ -787,9 +791,9 @@ public class SAXReader
     /**
      * Returns encoding used for InputSource (null means system default
      * encoding)
-     * 
+     *
      * @return encoding used for InputSource
-     * 
+     *
      */
     @Keep
     public String getEncoding()
@@ -799,7 +803,7 @@ public class SAXReader
 
     /**
      * Sets encoding used for InputSource (null means system default encoding)
-     * 
+     *
      * @param encoding
      *            is encoding used for InputSource
      */
@@ -811,11 +815,11 @@ public class SAXReader
     /**
      * Sets the class name of the <code>XMLReader</code> to be used to parse
      * SAX events.
-     * 
+     *
      * @param xmlReaderClassName
      *            is the class name of the <code>XMLReader</code> to parse SAX
      *            events
-     * 
+     *
      * @throws SAXException
      *             DOCUMENT ME!
      */
@@ -827,7 +831,7 @@ public class SAXReader
     /**
      * Adds the <code>ElementHandler</code> to be called when the specified
      * path is encounted.
-     * 
+     *
      * @param path
      *            is the path to be handled
      * @param handler
@@ -842,7 +846,7 @@ public class SAXReader
     /**
      * Removes the <code>ElementHandler</code> from the event based processor,
      * for the specified path.
-     * 
+     *
      * @param path
      *            is the path to remove the <code>ElementHandler</code> for.
      */
@@ -855,7 +859,7 @@ public class SAXReader
      * When multiple <code>ElementHandler</code> instances have been
      * registered, this will set a default <code>ElementHandler</code> to be
      * called for any path which does <b>NOT </b> have a handler registered.
-     * 
+     *
      * @param handler
      *            is the <code>ElementHandler</code> to be called by the event
      *            based processor.
@@ -877,7 +881,7 @@ public class SAXReader
 
     /**
      * Returns the SAX filter being used to filter SAX events.
-     * 
+     *
      * @return the SAX filter being used or null if no SAX filter is installed
      */
     public XMLFilter getXMLFilter()
@@ -887,7 +891,7 @@ public class SAXReader
 
     /**
      * Sets the SAX filter to be used when filtering SAX events
-     * 
+     *
      * @param filter
      *            is the SAX filter to use or null to disable filtering
      */
@@ -902,10 +906,10 @@ public class SAXReader
     /**
      * Installs any XMLFilter objects required to allow the SAX event stream to
      * be filtered and preprocessed before it gets to dom4j.
-     * 
+     *
      * @param reader
      *            DOCUMENT ME!
-     * 
+     *
      * @return the new XMLFilter if applicable or the original XMLReader if no
      *         filter is being used.
      */
@@ -958,9 +962,9 @@ public class SAXReader
     /**
      * Factory Method to allow alternate methods of creating and configuring
      * XMLReader objects
-     * 
+     *
      * @return DOCUMENT ME!
-     * 
+     *
      * @throws SAXException
      *             DOCUMENT ME!
      */
@@ -971,12 +975,12 @@ public class SAXReader
 
     /**
      * Configures the XMLReader before use
-     * 
+     *
      * @param reader
      *            DOCUMENT ME!
      * @param handler
      *            DOCUMENT ME!
-     * 
+     *
      * @throws DocumentException
      *             DOCUMENT ME!
      */
@@ -1017,7 +1021,7 @@ public class SAXReader
         try
         {
             // configure validation support
-            reader.setFeature("http://xml.org/sax/features/validation", isValidating());
+            reader.setFeature("http://xml.org/sax/features/validation", false); // Temporarily disabled for debugging
 
             if (errorHandler != null)
             {
@@ -1040,10 +1044,10 @@ public class SAXReader
 
     /**
      * Factory Method to allow user derived SAXContentHandler objects to be used
-     * 
+     *
      * @param reader
      *            DOCUMENT ME!
-     * 
+     *
      * @return DOCUMENT ME!
      */
     protected SAXContentHandler createContentHandler(XMLReader reader)

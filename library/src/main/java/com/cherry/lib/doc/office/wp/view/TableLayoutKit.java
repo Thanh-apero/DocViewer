@@ -59,144 +59,162 @@ public class TableLayoutKit
      * @param docAttr       文档属性
      * @param pageAttr      页面属性
      * @param paraAttr      段浇属性
-     * @param para          布局段落视图
+     * @param tableView     布局表格视图
      * @param startOffset   布局开始Offset
      * @param x             布局开始x值
      * @param y             布局开始y值
      * @param w             布局的宽度
      * @param h             布局的高度
      * @param flag          布局标记
+     * @param isBreakPages  是否跨页
      * @return
      */
     public int layoutTable(IControl control, IDocument doc, IRoot root, DocAttr docAttr, PageAttr pageAttr, ParaAttr paraAttr,
-        TableView tableView, long startOffset, int x, int y, int w, int h, int flag, boolean isBreakPages)
-    {
+                           TableView tableView, long startOffset, int x, int y, int w, int h, int flag, boolean isBreakPages) {
         mergedCell.clear();
-        
+
         int span = h;
         int dx = 0;
-        int dy = 0;
-        int breakType =  WPViewConstant.BREAK_NO;
-        TableElement tableElem = (TableElement)tableView.getElement();
-        AttrManage.instance().fillTableAttr(tableAttr, tableElem.getAttribute()); 
+        int dy = 0; // Relative Y for placing new rows within the tableView
+        int breakType = WPViewConstant.BREAK_NO;
+        TableElement tableElem = (TableElement) tableView.getElement();
+        AttrManage.instance().fillTableAttr(tableAttr, tableElem.getAttribute());
         flag = ViewKit.instance().setBitValue(flag, WPViewConstant.LAYOUT_PARA_IN_TABLE, true);
         boolean keepOne = ViewKit.instance().getBitValue(flag, WPViewConstant.LAYOUT_FLAG_KEEPONE);
-        long maxEnd = tableElem.getEndOffset();
-        int rowHeight = 0;
-        int tableHeight = 0;
-        int tableWidth = 0;
-        RowView rowView = null;
-        while (startOffset < maxEnd && span > 0
-            || (breakRowElement != null && isBreakPages))
-        {
-            isRowBreakPages = false;
-            IElement rowElem;
-            if (breakRowElement != null && isBreakPages)
-            {
-                rowElem = breakRowElement;
-                breakRowElement = null;
-            }
-            else
-            {
-                rowElem = tableElem.getElementForIndex(rowIndex++);
-            }
-            if (rowElem == null)
-            {
+        long maxEndOffsetInTableElement = tableElem.getEndOffset();
+
+        int accumulatedTableHeight = 0; // Total height of rows laid out in this pass
+        int maxTableWidth = 0; // Max width of the table in this pass
+        RowView currentRowView = null; // The RowView currently being processed or last processed
+        long currentLayoutProcessingOffset = startOffset; // The offset from which to fetch the next content
+
+        RowElement explicitBreakRowToProcess = null;
+        if (isBreakPages && this.breakRowElement != null && this.breakRowElement.getStartOffset() >= startOffset) {
+            explicitBreakRowToProcess = this.breakRowElement;
+            currentLayoutProcessingOffset = this.breakRowElement.getStartOffset(); // Ensure we start at the break row
+        }
+        this.breakRowElement = null; // Reset for this layout pass
+
+        boolean alreadyProcessedExplicitBreak = false;
+        int loopCount = 0;
+
+        while (currentLayoutProcessingOffset < maxEndOffsetInTableElement && accumulatedTableHeight < span) {
+            loopCount++;
+
+            if (explicitBreakRowToProcess != null && !alreadyProcessedExplicitBreak) {
+            } else if (accumulatedTableHeight >= span) {
                 break;
             }
-            if (rowView != null)
-            {
-                layoutMergedCell(rowView, (RowElement)rowElem, false);
-                dy = rowView.getY() + rowView.getLayoutSpan(WPViewConstant.Y_AXIS);
-                tableHeight = dy;
-                span = h - tableHeight;
-                if (/*breakType == WPViewConstant.BREAK_LIMIT || */span <= 0)
-                {   
-                    if (isBreakPages(rowView))
-                    {
-                        rowIndex--;
-                        breakRowElement = (RowElement)rowView.getElement();
-                    }
-                    else
-                    {
-                        breakRowElement = (RowElement)rowElem;
-                    }
-                    
+
+            isRowBreakPages = false; // Reset for each row
+            IElement rowElementToLayout;
+            boolean isProcessingExplicitBreakThisIteration = false;
+
+            if (explicitBreakRowToProcess != null && !alreadyProcessedExplicitBreak) {
+                rowElementToLayout = explicitBreakRowToProcess;
+                isProcessingExplicitBreakThisIteration = true;
+                alreadyProcessedExplicitBreak = true; // Consume it for this pass
+            } else {
+                if (currentLayoutProcessingOffset >= maxEndOffsetInTableElement) {
                     break;
                 }
+                rowElementToLayout = tableElem.getElementForIndex(rowIndex);
+                rowIndex++; // Increment rowIndex after fetching
             }
-            rowView = (RowView)ViewFactory.createView(control, rowElem, null, WPViewConstant.TABLE_ROW_VIEW);
-            tableView.appendChlidView(rowView);
-            rowView.setStartOffset(startOffset);
-            rowView.setLocation(dx, dy);
-            
-            // layout row
-            breakType = layoutRow(control, doc, root, docAttr, pageAttr, paraAttr, rowView, startOffset, dx, dy, w, span, flag, isBreakPages);
-            
-            rowHeight = rowView.getLayoutSpan(WPViewConstant.Y_AXIS);
-            if ((rowHeight == 0 || span - rowHeight < 0) && !keepOne)
-            {
-                RowView preView = (RowView)rowView.getPreView();
-                if (preView != null && isBreakPages(preView))
-                {
-                    rowIndex--;
-                    breakRowElement = (RowElement)preView.getElement();
-                    // 清除当行中跨行cellElem
-                    clearCurrentRowBreakPageCell(rowElem);
-                }
-                else
-                {
-                    breakRowElement = (RowElement)rowView.getElement();
-                    // 清除当行中跨行cellElem
-                    clearCurrentRowBreakPageCell(rowElem);
-                }
-                tableView.deleteView(rowView, true);
-                rowView = preView;
-                breakType =  WPViewConstant.BREAK_LIMIT;
+
+            if (rowElementToLayout == null) {
                 break;
             }
-            else if (breakType == WPViewConstant.BREAK_LIMIT && breakPagesCell.size() > 0
-                || isRowBreakPages)
-            {
-                breakRowElement = (RowElement)rowView.getElement();
+
+            if (!isProcessingExplicitBreakThisIteration) {
+                currentLayoutProcessingOffset = rowElementToLayout.getStartOffset(); // Ensure offset matches new row
             }
-            tableWidth = Math.max(tableWidth, rowView.getLayoutSpan(WPViewConstant.X_AXIS));
-            dy += rowHeight;
-            tableHeight += rowHeight;
-            startOffset =  rowView.getEndOffset(null);
-            isBreakPages = false;
+
+            if (currentRowView != null) {
+                // System.out.println("Calling layoutMergedCell for previous rowView");
+                layoutMergedCell(currentRowView, (RowElement) rowElementToLayout, false);
+                dy = accumulatedTableHeight;
+            } else {
+                dy = accumulatedTableHeight; // Should be 0 for the first row
+            }
+            currentRowView = (RowView) ViewFactory.createView(control, rowElementToLayout, null, WPViewConstant.TABLE_ROW_VIEW);
+            tableView.appendChlidView(currentRowView);
+            currentRowView.setStartOffset(currentLayoutProcessingOffset);
+            currentRowView.setLocation(dx, dy);
+            int heightAvailableForRowLayout = span - accumulatedTableHeight;
+
+            breakType = layoutRow(control, doc, root, docAttr, pageAttr, paraAttr, currentRowView, currentLayoutProcessingOffset, dx, dy, w, heightAvailableForRowLayout, flag, isProcessingExplicitBreakThisIteration);
+            int rowActualHeightInSpan = currentRowView.getLayoutSpan(WPViewConstant.Y_AXIS);
+
+            if (rowActualHeightInSpan <= 0 && !keepOne && !(isRowBreakPages && rowActualHeightInSpan == 0)) {
+                tableView.deleteView(currentRowView, true);
+
+                IView lastChild = tableView.getChildView();
+                if (lastChild != null) {
+                    while (lastChild.getNextView() != null) {
+                        lastChild = lastChild.getNextView();
+                    }
+                }
+                currentRowView = (RowView) lastChild;
+
+                this.breakRowElement = (RowElement) rowElementToLayout;
+                breakType = WPViewConstant.BREAK_LIMIT;
+                break;
+            }
+
+            maxTableWidth = Math.max(maxTableWidth, currentRowView.getLayoutSpan(WPViewConstant.X_AXIS));
+            accumulatedTableHeight += rowActualHeightInSpan;
+            currentLayoutProcessingOffset = currentRowView.getEndOffset(null);
+
+            if (isRowBreakPages) {
+                this.breakRowElement = (RowElement) rowElementToLayout;
+                breakType = WPViewConstant.BREAK_LIMIT;
+                break;
+            }
+
+            if (accumulatedTableHeight >= span && currentLayoutProcessingOffset < maxEndOffsetInTableElement) {
+                if (currentLayoutProcessingOffset < rowElementToLayout.getEndOffset()) {
+                    this.breakRowElement = (RowElement) rowElementToLayout;
+                } else {
+                    IElement nextRowElemAfterFilledSpan = tableElem.getElementForIndex(rowIndex); // rowIndex already incremented if new row was fetched
+                    if (nextRowElemAfterFilledSpan != null) {
+                        this.breakRowElement = (RowElement) nextRowElemAfterFilledSpan;
+                    } else {
+                        // this.breakRowElement remains null if all content up to maxEndOffsetInTableElement is laid out
+                    }
+                }
+                breakType = WPViewConstant.BREAK_LIMIT;
+                break;
+            }
             keepOne = false;
         }
-        layoutMergedCell(rowView, null, true);
-        ///
-        tableView.setEndOffset(startOffset);
-        //
-        tableView.setSize(tableWidth, tableHeight);
-        //
-        if (docAttr.rootType == WPViewConstant.PAGE_ROOT)
-        {            
-            // table horizontal alignment
-            byte hor = (byte)AttrManage.instance().getParaHorizontalAlign(tableElem.getAttribute());
-            int want = w - tableWidth;
-            if (hor == WPAttrConstant.PARA_HOR_ALIGN_CENTER ||
-                hor == WPAttrConstant.PARA_HOR_ALIGN_RIGHT)
-            {
-                if (hor == WPAttrConstant.PARA_HOR_ALIGN_CENTER)
-                {
+        layoutMergedCell(currentRowView, null, true);
+
+        tableView.setSize(maxTableWidth, accumulatedTableHeight);
+
+        if (this.breakRowElement != null) {
+            tableView.setEndOffset(currentLayoutProcessingOffset);
+        } else {
+            tableView.setEndOffset(currentLayoutProcessingOffset);
+        }
+
+        if (docAttr.rootType == WPViewConstant.PAGE_ROOT) {
+            byte hor = (byte) AttrManage.instance().getParaHorizontalAlign(tableElem.getAttribute());
+            int want = w - maxTableWidth;
+            if (hor == WPAttrConstant.PARA_HOR_ALIGN_CENTER || hor == WPAttrConstant.PARA_HOR_ALIGN_RIGHT) {
+                if (hor == WPAttrConstant.PARA_HOR_ALIGN_CENTER) {
                     want /= 2;
                 }
                 tableView.setX(tableView.getX() + want);
-            }
-            else
-            {
+            } else {
                 tableView.setX(tableView.getX() - tableAttr.leftMargin
-                    + (int)(AttrManage.instance().getParaIndentLeft(tableElem.getAttribute()) * MainConstant.TWIPS_TO_PIXEL));    
+                        + (int) (AttrManage.instance().getParaIndentLeft(tableElem.getAttribute()) * MainConstant.TWIPS_TO_PIXEL));
             }
         }
-        breakRowView = rowView;
+        breakRowView = currentRowView;
         return breakType;
     }
-    
+
     /**
      * 
      */
@@ -219,11 +237,11 @@ public class TableLayoutKit
     }
     
     /**
-     * 布局段浇
+     * 布局行
      * @param docAttr       文档属性
      * @param pageAttr      页面属性
      * @param paraAttr      段浇属性
-     * @param para          布局段落视图
+     * @param rowView       布局行视图
      * @param startOffset   布局开始Offset
      * @param x             布局开始x值
      * @param y             布局开始y值
@@ -256,7 +274,6 @@ public class TableLayoutKit
         {
             IElement cellElem = null;
             isNullCell = false;
-            // 表格跨页
             if (isBreakPages && breakPagesCell.size() > 0)
             {
                 if (breakPagesCell.containsKey(cellIndex))
@@ -296,7 +313,6 @@ public class TableLayoutKit
             cellView.setLocation(dx, dy);
             cellView.setColumn((short)cellIndex);
             
-            // cell跨页，但又没有补切到下一页
             if (isNullCell)
             {
                 cellView.setFirstMergedCell(isBreakPages);
@@ -304,13 +320,10 @@ public class TableLayoutKit
             }
             else
             {
-                // first mergeCell
                 cellView.setFirstMergedCell(isBreakPages || AttrManage.instance().isTableVerFirstMerged(cellElem.getAttribute()));
                 cellView.setMergedCell(AttrManage.instance().isTableVerMerged(cellElem.getAttribute()));
-                //
                 breakType = layoutCell(control, doc, root, docAttr, pageAttr, paraAttr, cellView, startOffset, dx, dy, w, h, flag, cellIndex, isBreakPages);
             }
-            //
             cellWidth = cellView.getLayoutSpan(WPViewConstant.X_AXIS);
             cellHeight = cellView.getLayoutSpan(WPViewConstant.Y_AXIS); 
             isInvalid = isInvalid && cellHeight == 0;
@@ -325,13 +338,10 @@ public class TableLayoutKit
             {
                 mergedCell.add(cellView);
             }
-            //
             maxCellHeight = Math.max(maxCellHeight, cellHeight);
-            //
             startOffset = cellView.getEndOffset(null);
             cellIndex++;
         }
-        //
         CellView cellView = (CellView)rowView.getChildView();
         while (cellView != null)
         {
@@ -339,13 +349,11 @@ public class TableLayoutKit
                 && cellView.getLayoutSpan(WPViewConstant.Y_AXIS) < maxRowHeight)
             {
                 cellView.setHeight(maxRowHeight - cellView.getTopIndent() - cellView.getBottomIndent());
-                //
                 CellElement cellElem = (CellElement)cellView.getElement();
                 if(cellElem != null)
                 {
                 	tableAttr.cellVerticalAlign = (byte)AttrManage.instance().getTableCellVerAlign(cellElem.getAttribute());
                 }
-                
                 layoutCellVerticalAlign(cellView);                
             }
             cellView = (CellView)cellView.getNextView();
@@ -360,13 +368,12 @@ public class TableLayoutKit
         return breakType;
     }
     
-    
     /**
-     * 布局段浇
+     * 布局单元格
      * @param docAttr       文档属性
      * @param pageAttr      页面属性
      * @param paraAttr      段浇属性
-     * @param para          布局段落视图
+     * @param cellView      布局单元格视图
      * @param startOffset   布局开始Offset
      * @param x             布局开始x值
      * @param y             布局开始y值
@@ -438,11 +445,11 @@ public class TableLayoutKit
     }
     
     /**
-     * 布局段浇
+     * 布局空单元格
      * @param docAttr       文档属性
      * @param pageAttr      页面属性
      * @param paraAttr      段浇属性
-     * @param para          布局段落视图
+     * @param cellView      布局单元格视图
      * @param startOffset   布局开始Offset
      * @param x             布局开始x值
      * @param y             布局开始y值
@@ -480,7 +487,6 @@ public class TableLayoutKit
                 if (cell.getParentView() != null)
                 {
                     cell.setHeight(maxY - cell.getParentView().getY());
-                    //
                     layoutCellVerticalAlign(cell);
                 }
             }
@@ -499,7 +505,6 @@ public class TableLayoutKit
             {
                 continue;
             }
-            // 如果下一个单元格式不是合并单元格
             if (!AttrManage.instance().isTableVerMerged(cellElem.getAttribute())
                 || AttrManage.instance().isTableVerFirstMerged(cellElem.getAttribute()))
             {
@@ -507,7 +512,6 @@ public class TableLayoutKit
                 if (cell.getParentView().getY() + cellHeight < maxY)
                 {
                     cell.setHeight( maxY - cell.getParentView().getY());
-                    //
                     layoutCellVerticalAlign(cell);
                 }
                 else
@@ -519,8 +523,7 @@ public class TableLayoutKit
                         if (!cellView.isMergedCell())
                         {
                             int oldHeight = cellView.getHeight();
-                            cellView.setHeight(maxY - cellView.getParentView().getY());// + cellView.getLayoutSpan(WPViewConstant.Y_AXIS)));
-                            //
+                            cellView.setHeight(maxY - cellView.getParentView().getY());
                             if(oldHeight != cellView.getHeight())
                             {
                                 layoutCellVerticalAlign(cellView);
@@ -532,7 +535,6 @@ public class TableLayoutKit
                 vector.add(cell);
             }
         }
-        //
         for (CellView cell : vector)
         {
             maxY = cell.getParentView().getY() + cell.getLayoutSpan(WPViewConstant.Y_AXIS);
@@ -581,7 +583,6 @@ public class TableLayoutKit
         }
         int want = cellView.getLayoutSpan(WPViewConstant.Y_AXIS) - textHeight;
         int verAlignmnet = AttrManage.instance().getTableCellVerAlign(cellView.getElement().getAttribute());
-        // vertical center alignment
         if (verAlignmnet == WPAttrConstant.PARA_VER_ALIGN_CENTER
             || verAlignmnet == WPAttrConstant.PARA_VER_ALIGN_BOTTOM)
         {
@@ -629,16 +630,10 @@ public class TableLayoutKit
     }
     
     private boolean isRowBreakPages;
-    // 
     private short rowIndex;
-    // 跨页的row element
     private RowElement breakRowElement;
-    //
     private RowView breakRowView;
-    // 跨页的 cell element
     private Map<Integer, BreakPagesCell> breakPagesCell;
-    //
     private TableAttr tableAttr = new TableAttr();
-    //
     private Vector<CellView> mergedCell = new Vector<CellView>(); 
 }
