@@ -10,7 +10,9 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.RelativeLayout
@@ -47,6 +49,10 @@ import com.cherry.lib.doc.util.ViewUtils.show
 import java.io.File
 import java.net.URLEncoder
 
+interface OnSingleTapListener {
+    fun onSingleTap()
+}
+
 class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
 
     private val TAG = "DocView"
@@ -80,6 +86,8 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
 
     private lateinit var binding: DocViewBinding
     private var iControl: IControl? = null
+    private var onSingleTapListener: OnSingleTapListener? = null
+    private lateinit var gestureDetector: GestureDetector
 
     constructor(context: Context) : this(context, null)
     constructor(context: Context, attrs: AttributeSet?) : this(context, attrs, 0)
@@ -121,6 +129,17 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
 
         typedArray.recycle()
 
+        // Initialize GestureDetector for single tap detection
+        gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                Log.d(TAG, "onSingleTapConfirmed triggered!")
+                onSingleTapListener?.onSingleTap()
+                return true // Event was handled
+            }
+        })
+
+        // Make DocView clickable to ensure it receives touch events
+        this.isClickable = true
 
         runnable = Runnable {
             binding.mPdfPageNo.hide()
@@ -390,19 +409,42 @@ class DocView : FrameLayout, OnDownloadListener, OnWebLoadListener {
         iControl?.dispose()
     }
 
-    private fun setupRecyclerView(){
-        binding.rvPageView.adapter = pageViewAdapter
-        binding.rvPageView.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
+    fun setupPageView(recyclerView: RecyclerView){
+        recyclerView.adapter = pageViewAdapter
+        recyclerView.layoutManager = LinearLayoutManager(context, RecyclerView.HORIZONTAL, false)
     }
 
     fun setupAdapter(appControl: IControl){
         if (appControl is WPControl || appControl is PGControl){
             pageViewAdapter = PageViewAdapter(appControl).getAdapter()
-            setupRecyclerView()
         }
     }
 
     fun getControl(): IControl?{
         return iControl
+    }
+    fun setOnSingleTapListener(listener: OnSingleTapListener?) {
+        this.onSingleTapListener = listener
+    }
+
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        val consumedByGestureDetector = gestureDetector.onTouchEvent(ev)
+        if (consumedByGestureDetector) {
+            return true
+        }
+        return super.onInterceptTouchEvent(ev)
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        Log.d(TAG, "onTouchEvent received action: ${event.action}")
+        val consumedByGestureDetector = gestureDetector.onTouchEvent(event)
+        Log.d(TAG, "gestureDetector.onTouchEvent returned: $consumedByGestureDetector")
+        if (consumedByGestureDetector) {
+            return true
+        }
+        val consumedBySuper = super.onTouchEvent(event)
+        Log.d(TAG, "super.onTouchEvent returned: $consumedBySuper")
+        return consumedBySuper
     }
 }

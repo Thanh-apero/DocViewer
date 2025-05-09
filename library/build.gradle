@@ -65,7 +65,7 @@ publishing {
         maven(MavenPublication) {
             groupId = "apero-inhouse"
             artifactId = "doc-reader"
-            version = "1.0.0"
+            version = "1.0.0-alpha05"
             artifact("${project.buildDir}/outputs/aar/library-release.aar")
             pom.withXml {
                 def dependenciesNode = asNode().dependencies ? asNode().dependencies[0] : asNode().appendNode('dependencies')
